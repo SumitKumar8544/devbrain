@@ -1,0 +1,29 @@
+# Dependencies
+node_modules
+client/node_modules
+server/node_modules
+
+# Production Build
+client/dist
+
+# Environment Variables & Secrets
+.env
+server/.env
+*.env.local
+
+# Local Database & User Uploads (Kept local, created on runtime)
+server/data/*.sqlite
+server/data/*.sqlite-journal
+server/data/*.sqlite-wal
+server/data/*.sqlite-shm
+server/uploads/*
+!server/uploads/.gitkeep
+
+# Logs & Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS Files
+.DS_Store
+Thumbs.db
