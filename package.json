@@ -7,7 +7,7 @@
     "dev:server": "cd server && npm run dev",
     "dev:client": "cd client && npm run dev",
     "dev": "concurrently -n \"SERVER,CLIENT\" -c \"cyan,magenta\" \"npm run dev:server\" \"npm run dev:client\"",
-    "build": "npm --prefix client install && npm --prefix client run build && npm --prefix server install",
+    "build": "npm --prefix client install --include=dev && npm --prefix client run build && npm --prefix server install",
     "start": "node server/src/index.js"
   },
   "devDependencies": {
