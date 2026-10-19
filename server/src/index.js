@@ -8,6 +8,8 @@ import multer from 'multer';
 import crypto from 'node:crypto';
 import { db, initDB, uploadsDir } from './db.js';
 import { askAI, askGemini } from './ai.js';
+import { uploadToSupabase } from './supabase.js';
+import { initMongo, isMongoConnected, MongoUser } from './mongo.js';
 
 dotenv.config();
 
@@ -21,11 +23,12 @@ app.use(cors());
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 
-// Serve uploaded photos, documents, and PDFs statically
+// Serve uploaded photos, documents, and PDFs statically (local fallback)
 app.use('/uploads', express.static(uploadsDir));
 
-// Initialize DB schema
+// Initialize DB schema & cloud databases
 initDB();
+initMongo();
 
 // Multer Storage Configuration for Photos and Documents
 const storage = multer.diskStorage({
@@ -55,12 +58,35 @@ function getUserId(req) {
   return req.headers['x-user-id'] || req.query.userId || null;
 }
 
-function requireAuth(req, res, next) {
+async function requireAuth(req, res, next) {
   const userId = getUserId(req);
   if (!userId) {
     return res.status(401).json({ error: 'Authentication required. Please sign in.' });
   }
-  const user = db.prepare('SELECT id, name, email, institution, role, grade_or_level FROM users WHERE id = ?').get(userId);
+
+  let user = null;
+  if (isMongoConnected()) {
+    try {
+      const doc = await MongoUser.findById(userId).lean();
+      if (doc) {
+        user = {
+          id: doc._id,
+          name: doc.name,
+          email: doc.email,
+          institution: doc.institution,
+          role: doc.role,
+          grade_or_level: doc.grade_or_level,
+        };
+      }
+    } catch (e) {
+      // ignore and fallback
+    }
+  }
+
+  if (!user) {
+    user = db.prepare('SELECT id, name, email, institution, role, grade_or_level FROM users WHERE id = ?').get(userId);
+  }
+
   if (!user) {
     return res.status(401).json({ error: 'Session expired or invalid. Please sign in again.' });
   }
@@ -69,40 +95,64 @@ function requireAuth(req, res, next) {
 }
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', service: 'DevBrain Vault API', time: new Date().toISOString() });
+  res.json({
+    status: 'ok',
+    service: 'DevBrain Vault API',
+    database: isMongoConnected() ? 'MongoDB Atlas (Cloud)' : 'SQLite (Local)',
+    storage: 'Supabase Storage (Cloud) + Local Disk Fallback',
+    time: new Date().toISOString()
+  });
 });
 
 // ==========================================
 // 1. FILE UPLOAD (MULTIPLE PHOTOS, PDFS, DOCUMENTS)
 // ==========================================
-app.post('/api/upload', requireAuth, upload.array('files', 50), (req, res) => {
+app.post('/api/upload', requireAuth, upload.array('files', 50), async (req, res) => {
   try {
     const files = req.files || [];
     if (!files || files.length === 0) {
       return res.status(400).json({ error: 'No files uploaded' });
     }
 
-    const attachments = files.map((file) => {
-      const mime = file.mimetype || '';
-      let fileType = 'document';
-      const ext = path.extname(file.originalname).toLowerCase();
+    const attachments = await Promise.all(
+      files.map(async (file) => {
+        const mime = file.mimetype || '';
+        let fileType = 'document';
+        const ext = path.extname(file.originalname).toLowerCase();
 
-      if (mime.startsWith('image/') || ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg', '.bmp'].includes(ext)) {
-        fileType = 'image';
-      } else if (mime === 'application/pdf' || ext === '.pdf') {
-        fileType = 'pdf';
-      }
+        if (mime.startsWith('image/') || ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg', '.bmp'].includes(ext)) {
+          fileType = 'image';
+        } else if (mime === 'application/pdf' || ext === '.pdf') {
+          fileType = 'pdf';
+        }
 
-      return {
-        id: `att-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`,
-        name: file.originalname,
-        url: `/uploads/${file.filename}`,
-        type: fileType,
-        size: file.size,
-        mimeType: mime,
-        uploaded_at: new Date().toISOString(),
-      };
-    });
+        let fileUrl = `/uploads/${file.filename}`;
+        let isCloud = false;
+
+        // Upload buffer to Supabase Storage
+        try {
+          const fileBuffer = fs.readFileSync(file.path);
+          const cloudUpload = await uploadToSupabase(fileBuffer, file.originalname, mime);
+          if (cloudUpload && cloudUpload.url) {
+            fileUrl = cloudUpload.url;
+            isCloud = true;
+          }
+        } catch (uploadErr) {
+          console.warn('[Upload] Supabase cloud upload fallback to local disk:', uploadErr.message);
+        }
+
+        return {
+          id: `att-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`,
+          name: file.originalname,
+          url: fileUrl,
+          isCloud,
+          type: fileType,
+          size: file.size,
+          mimeType: mime,
+          uploaded_at: new Date().toISOString(),
+        };
+      })
+    );
 
     res.json({
       success: true,
@@ -117,7 +167,7 @@ app.post('/api/upload', requireAuth, upload.array('files', 50), (req, res) => {
 // ==========================================
 // 2. AUTHENTICATION (UNIVERSAL FOR EVERYONE)
 // ==========================================
-app.post('/api/auth/register', (req, res) => {
+app.post('/api/auth/register', async (req, res) => {
   try {
     const { name, email, password, institution, role, grade_or_level } = req.body;
     if (!name || !email || !password) {
@@ -125,7 +175,18 @@ app.post('/api/auth/register', (req, res) => {
     }
 
     const cleanEmail = email.trim().toLowerCase();
-    const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(cleanEmail);
+    
+    // Check in MongoDB Atlas or SQLite
+    let existing = null;
+    if (isMongoConnected()) {
+      try {
+        existing = await MongoUser.findOne({ email: cleanEmail }).lean();
+      } catch (e) {}
+    }
+    if (!existing) {
+      existing = db.prepare('SELECT id FROM users WHERE email = ?').get(cleanEmail);
+    }
+
     if (existing) {
       return res.status(400).json({ error: 'An account with this email already exists. Please sign in.' });
     }
@@ -133,6 +194,7 @@ app.post('/api/auth/register', (req, res) => {
     const userId = `user-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
     const passwordHash = hashPassword(password);
 
+    // Save to local SQLite
     db.prepare(`
       INSERT INTO users (id, name, email, password, institution, role, grade_or_level)
       VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -146,14 +208,40 @@ app.post('/api/auth/register', (req, res) => {
       grade_or_level ? grade_or_level.trim() : 'General'
     );
 
-    const user = db.prepare('SELECT id, name, email, institution, role, grade_or_level, created_at FROM users WHERE id = ?').get(userId);
+    // Save to MongoDB Atlas
+    if (isMongoConnected()) {
+      try {
+        await MongoUser.create({
+          _id: userId,
+          name: name.trim(),
+          email: cleanEmail,
+          password: passwordHash,
+          institution: institution ? institution.trim() : '',
+          role: role ? role.trim() : 'Learner',
+          grade_or_level: grade_or_level ? grade_or_level.trim() : 'General',
+        });
+      } catch (mongoErr) {
+        console.warn('[Auth] MongoUser create warning:', mongoErr.message);
+      }
+    }
+
+    const user = {
+      id: userId,
+      name: name.trim(),
+      email: cleanEmail,
+      institution: institution ? institution.trim() : '',
+      role: role ? role.trim() : 'Learner',
+      grade_or_level: grade_or_level ? grade_or_level.trim() : 'General',
+      created_at: new Date().toISOString()
+    };
+
     res.status(201).json({ success: true, user });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
@@ -163,11 +251,51 @@ app.post('/api/auth/login', (req, res) => {
     const cleanEmail = email.trim().toLowerCase();
     const passwordHash = hashPassword(password);
 
-    const user = db.prepare(`
-      SELECT id, name, email, institution, role, grade_or_level, created_at
-      FROM users
-      WHERE email = ? AND password = ?
-    `).get(cleanEmail, passwordHash);
+    let user = null;
+
+    // Check MongoDB Atlas first if connected
+    if (isMongoConnected()) {
+      try {
+        const mongoUser = await MongoUser.findOne({ email: cleanEmail, password: passwordHash }).lean();
+        if (mongoUser) {
+          user = {
+            id: mongoUser._id,
+            name: mongoUser.name,
+            email: mongoUser.email,
+            institution: mongoUser.institution,
+            role: mongoUser.role,
+            grade_or_level: mongoUser.grade_or_level,
+            created_at: mongoUser.created_at,
+          };
+          // Sync into local SQLite for fast relational joins
+          try {
+            db.prepare(`
+              INSERT OR REPLACE INTO users (id, name, email, password, institution, role, grade_or_level)
+              VALUES (?, ?, ?, ?, ?, ?, ?)
+            `).run(
+              user.id,
+              user.name,
+              user.email,
+              passwordHash,
+              user.institution,
+              user.role,
+              user.grade_or_level
+            );
+          } catch (syncErr) {}
+        }
+      } catch (mongoErr) {
+        console.warn('[Auth] MongoDB login query error:', mongoErr.message);
+      }
+    }
+
+    // Fallback to SQLite
+    if (!user) {
+      user = db.prepare(`
+        SELECT id, name, email, institution, role, grade_or_level, created_at
+        FROM users
+        WHERE email = ? AND password = ?
+      `).get(cleanEmail, passwordHash);
+    }
 
     if (!user) {
       return res.status(401).json({ error: 'Invalid email or password.' });
@@ -183,13 +311,14 @@ app.get('/api/auth/me', requireAuth, (req, res) => {
   res.json({ user: req.user });
 });
 
-app.put('/api/auth/profile', requireAuth, (req, res) => {
+app.put('/api/auth/profile', requireAuth, async (req, res) => {
   try {
     const { name, institution, role, grade_or_level } = req.body;
     if (!name || !name.trim()) {
       return res.status(400).json({ error: 'Full name is required.' });
     }
 
+    // Update in SQLite
     db.prepare(`
       UPDATE users
       SET name = ?, institution = ?, role = ?, grade_or_level = ?
@@ -202,14 +331,32 @@ app.put('/api/auth/profile', requireAuth, (req, res) => {
       req.user.id
     );
 
-    const updatedUser = db.prepare('SELECT id, name, email, institution, role, grade_or_level, created_at FROM users WHERE id = ?').get(req.user.id);
+    // Update in MongoDB Atlas
+    if (isMongoConnected()) {
+      try {
+        await MongoUser.findByIdAndUpdate(req.user.id, {
+          name: name.trim(),
+          institution: institution ? institution.trim() : '',
+          role: role ? role.trim() : 'Learner',
+          grade_or_level: grade_or_level ? grade_or_level.trim() : 'General',
+        });
+      } catch (e) {}
+    }
+
+    const updatedUser = {
+      ...req.user,
+      name: name.trim(),
+      institution: institution ? institution.trim() : '',
+      role: role ? role.trim() : 'Learner',
+      grade_or_level: grade_or_level ? grade_or_level.trim() : 'General',
+    };
     res.json({ success: true, user: updatedUser });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.put('/api/auth/password', requireAuth, (req, res) => {
+app.put('/api/auth/password', requireAuth, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
     if (!currentPassword || !newPassword) {
@@ -220,13 +367,32 @@ app.put('/api/auth/password', requireAuth, (req, res) => {
     }
 
     const currentHash = hashPassword(currentPassword);
-    const user = db.prepare('SELECT id FROM users WHERE id = ? AND password = ?').get(req.user.id, currentHash);
-    if (!user) {
+    
+    // Verify password in MongoDB or SQLite
+    let valid = false;
+    if (isMongoConnected()) {
+      try {
+        const u = await MongoUser.findById(req.user.id).lean();
+        if (u && u.password === currentHash) valid = true;
+      } catch (e) {}
+    }
+    if (!valid) {
+      const u = db.prepare('SELECT id FROM users WHERE id = ? AND password = ?').get(req.user.id, currentHash);
+      if (u) valid = true;
+    }
+
+    if (!valid) {
       return res.status(400).json({ error: 'Current password does not match.' });
     }
 
     const newHash = hashPassword(newPassword);
     db.prepare('UPDATE users SET password = ? WHERE id = ?').run(newHash, req.user.id);
+
+    if (isMongoConnected()) {
+      try {
+        await MongoUser.findByIdAndUpdate(req.user.id, { password: newHash });
+      } catch (e) {}
+    }
 
     res.json({ success: true, message: 'Password updated successfully.' });
   } catch (err) {
