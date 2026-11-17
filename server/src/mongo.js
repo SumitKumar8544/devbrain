@@ -1,7 +1,15 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import dns from 'node:dns';
 
 dotenv.config();
+
+// Resolve MongoDB Atlas SRV records reliably even if local ISP/Windows DNS refuses SRV queries
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
+} catch {
+  // Ignore in environments where setting DNS servers is restricted
+}
 
 let isConnected = false;
 
