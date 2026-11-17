@@ -19,7 +19,28 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+// Flexible CORS for standalone frontend (Vercel, Netlify, custom domain, or localhost)
+const allowedOrigins = process.env.CLIENT_URL
+  ? process.env.CLIENT_URL.split(',').map((s) => s.trim())
+  : null;
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (curl, mobile apps, same-origin)
+      if (!origin) return callback(null, true);
+      if (!allowedOrigins || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(null, true); // Permissive by default so cross-origin frontend works right out of the box
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id'],
+  })
+);
+app.options('*', cors());
+
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 
@@ -984,7 +1005,7 @@ function safeJsonParse(str, fallback) {
   }
 }
 
-// Serve built React frontend in production
+// Serve built React frontend in production (if present in monorepo)
 const clientDist = path.join(__dirname, '..', '..', 'client', 'dist');
 if (fs.existsSync(clientDist)) {
   app.use(express.static(clientDist));
@@ -993,6 +1014,21 @@ if (fs.existsSync(clientDist)) {
       return next();
     }
     res.sendFile(path.join(clientDist, 'index.html'));
+  });
+} else {
+  // Standalone backend root status endpoint
+  app.get('/', (req, res) => {
+    res.json({
+      service: 'DevBrain API Server',
+      status: 'online',
+      version: '1.0.0',
+      message: 'Backend API is running. Point your frontend VITE_API_URL to this domain.',
+      endpoints: {
+        health: '/api/health',
+        stats: '/api/stats',
+        notes: '/api/notes',
+      },
+    });
   });
 }
 

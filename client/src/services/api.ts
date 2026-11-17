@@ -1,6 +1,40 @@
 import type { Note, Subject, VaultStats, User, Attachment } from '../types';
 
-const API_BASE = '/api';
+const RAW_API_URL = import.meta.env.VITE_API_URL || '';
+export const API_URL = RAW_API_URL.replace(/\/+$/, '');
+const API_BASE = API_URL ? `${API_URL}/api` : '/api';
+
+/**
+ * Returns full URL for files/attachments, handling both relative paths (/uploads/...)
+ * and full CDN URLs (e.g. Supabase Storage https://...)
+ */
+export function getFileUrl(url: string | undefined | null): string {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+    return url;
+  }
+  const cleanPath = url.startsWith('/') ? url : `/${url}`;
+  return API_URL ? `${API_URL}${cleanPath}` : cleanPath;
+}
+
+function normalizeAttachment(att: Attachment): Attachment {
+  if (!att) return att;
+  return {
+    ...att,
+    url: getFileUrl(att.url),
+  };
+}
+
+function normalizeNote(note: Note): Note {
+  if (!note) return note;
+  if (note.attachments && Array.isArray(note.attachments)) {
+    return {
+      ...note,
+      attachments: note.attachments.map(normalizeAttachment),
+    };
+  }
+  return note;
+}
 
 class ApiService {
   private currentUserId: string | null = null;
@@ -136,7 +170,8 @@ class ApiService {
       throw new Error(err.error || 'Failed to upload files');
     }
     const data = await res.json();
-    return data.attachments || (data.attachment ? [data.attachment] : []);
+    const rawAttachments: Attachment[] = data.attachments || (data.attachment ? [data.attachment] : []);
+    return rawAttachments.map(normalizeAttachment);
   }
 
   async uploadFile(file: File): Promise<Attachment> {
@@ -223,7 +258,8 @@ class ApiService {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.error || 'Failed to fetch notes');
     }
-    return res.json();
+    const notes: Note[] = await res.json();
+    return notes.map(normalizeNote);
   }
 
   async getNote(id: string): Promise<Note> {
@@ -234,7 +270,8 @@ class ApiService {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.error || 'Failed to fetch note');
     }
-    return res.json();
+    const note: Note = await res.json();
+    return normalizeNote(note);
   }
 
   async createNote(data: Partial<Note>): Promise<Note> {
@@ -247,7 +284,8 @@ class ApiService {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.error || 'Failed to create note');
     }
-    return res.json();
+    const note: Note = await res.json();
+    return normalizeNote(note);
   }
 
   async updateNote(id: string, data: Partial<Note>): Promise<Note> {
@@ -260,7 +298,8 @@ class ApiService {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.error || 'Failed to update note');
     }
-    return res.json();
+    const note: Note = await res.json();
+    return normalizeNote(note);
   }
 
   async deleteNote(id: string): Promise<void> {
@@ -316,7 +355,8 @@ class ApiService {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.error || 'Shared note not found or access has been revoked');
     }
-    return res.json();
+    const note: Note = await res.json();
+    return normalizeNote(note);
   }
 
   // ================= AI Assistant =================
