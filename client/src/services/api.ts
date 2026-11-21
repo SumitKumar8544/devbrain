@@ -454,6 +454,38 @@ class ApiService {
     if (!res.ok) throw new Error(json.error || 'Failed to simulate trial expiry');
     return json;
   }
+
+  async getGatewayConfig(): Promise<{ stripeEnabled: boolean; publishableKey: string; currency: string; methods: string[] }> {
+    const res = await fetch(`${API_BASE}/subscription/gateway-config`, {
+      headers: this.getHeaders(),
+    });
+    if (!res.ok) throw new Error('Failed to fetch gateway configuration');
+    return res.json();
+  }
+
+  async createStripeCheckoutSession(data: {
+    planId: string;
+    billingCycle: 'monthly' | 'yearly' | 'lifetime';
+    promoCode?: string;
+  }): Promise<{ success?: boolean; checkoutUrl?: string; sessionId?: string; fallbackToInApp?: boolean; message?: string }> {
+    const res = await fetch(`${API_BASE}/subscription/stripe/create-checkout-session`, {
+      method: 'POST',
+      headers: this.getHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(data),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Stripe session creation failed');
+    return json;
+  }
+
+  async verifyStripeSession(sessionId: string, planId?: string): Promise<{ success: boolean; message: string; subscription: any; user: User }> {
+    const res = await fetch(`${API_BASE}/subscription/stripe/verify-session?sessionId=${encodeURIComponent(sessionId)}&planId=${encodeURIComponent(planId || '')}`, {
+      headers: this.getHeaders(),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Failed to verify Stripe payment');
+    return json;
+  }
 }
 
 export const api = new ApiService();

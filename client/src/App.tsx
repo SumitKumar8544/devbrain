@@ -163,6 +163,41 @@ export function App() {
       });
   }, []);
 
+  // Handle return from Stripe Checkout redirect (?stripe_session_id=...&plan_id=...)
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const stripeSessionId = params.get('stripe_session_id');
+      const planId = params.get('plan_id');
+
+      if (stripeSessionId) {
+        api.verifyStripeSession(stripeSessionId, planId || undefined)
+          .then((res) => {
+            if (res.success) {
+              success('🎉 Pro subscription activated via Stripe Checkout!');
+              if (res.user) {
+                setCurrentUser(res.user);
+              } else {
+                api.getMe().then((me) => me?.user && setCurrentUser(me.user));
+              }
+            }
+          })
+          .catch((err) => {
+            console.error('Stripe verification failed:', err);
+            toastError(err.message || 'Failed to verify Stripe payment');
+          })
+          .finally(() => {
+            const url = new URL(window.location.href);
+            url.searchParams.delete('stripe_session_id');
+            url.searchParams.delete('plan_id');
+            window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''));
+          });
+      }
+    } catch (e) {
+      console.error('Error parsing stripe session URL params:', e);
+    }
+  }, []);
+
   const loadData = async () => {
     if (!currentUser && !api.getUserId()) return;
     try {

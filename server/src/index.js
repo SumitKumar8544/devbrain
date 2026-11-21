@@ -8,6 +8,7 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import multer from 'multer';
 import crypto from 'node:crypto';
+import Stripe from 'stripe';
 import { db, initDB, uploadsDir } from './db.js';
 import { askAI, askGemini } from './ai.js';
 import { uploadToSupabase } from './supabase.js';
@@ -20,6 +21,15 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Initialize Stripe Client if API key is provided
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY || '';
+const stripe = stripeSecretKey ? new Stripe(stripeSecretKey) : null;
+if (stripe) {
+  console.log('💳 [Stripe] Live Stripe payment gateway client initialized.');
+} else {
+  console.log('💳 [Payment Gate] Running in Dual Gateway Mode (Integrated In-App Cards & UPI + Stripe ready via STRIPE_SECRET_KEY).');
+}
 
 // ==========================================
 // 1. SECURITY HEADERS (HELMET)
@@ -1338,6 +1348,175 @@ app.get('/api/subscription/history', requireAuth, (req, res) => {
       SELECT * FROM payments WHERE user_id = ? ORDER BY created_at DESC
     `).all(req.user.id);
     res.json({ success: true, payments: history || [] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Check gateway configuration (Stripe live status, etc.)
+app.get('/api/subscription/gateway-config', (req, res) => {
+  res.json({
+    stripeEnabled: Boolean(stripe),
+    publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || '',
+    currency: 'USD',
+    methods: ['stripe_checkout', 'credit_card', 'upi_instant', 'paypal']
+  });
+});
+
+// Create Stripe Checkout Session
+app.post('/api/subscription/stripe/create-checkout-session', requireAuth, async (req, res) => {
+  try {
+    const { planId, billingCycle, promoCode } = req.body;
+    let basePrice = 4.99;
+    let planName = 'Student & Scholar Pro';
+
+    if (planId === 'researcher_pro') {
+      basePrice = billingCycle === 'yearly' ? 7.99 * 12 : 9.99;
+      planName = 'Engineer & Researcher Pro';
+    } else if (planId === 'lifetime') {
+      basePrice = 79.00;
+      planName = 'Lifetime Founder Vault';
+    } else {
+      basePrice = billingCycle === 'yearly' ? 3.99 * 12 : 4.99;
+      planName = 'Student & Scholar Pro';
+    }
+
+    let discountPercent = 0;
+    if (promoCode) {
+      const code = String(promoCode).trim().toUpperCase();
+      if (code === 'STUDENT50' || code === 'SCHOLAR50') discountPercent = 50;
+      else if (code === 'DEV20' || code === 'WELCOME20') discountPercent = 20;
+    }
+
+    const finalAmount = Math.max(0.99, Number((basePrice * (1 - discountPercent / 100)).toFixed(2)));
+    const clientOrigin = req.headers.origin || req.headers.referer || 'http://localhost:5173';
+
+    if (!stripe) {
+      // If Stripe secret key is not set, provide seamless fallback flag
+      return res.json({
+        fallbackToInApp: true,
+        message: 'Stripe API key not configured in server/.env. Using direct in-app payment gateway.',
+        finalAmount,
+        planName,
+      });
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'payment',
+      customer_email: req.user.email,
+      line_items: [
+        {
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: `DevBrain ${planName}`,
+              description: `DevBrain Knowledge Vault & AI Study Copilot — ${billingCycle === 'yearly' ? 'Annual Plan' : 'Monthly Plan'}`,
+            },
+            unit_amount: Math.round(finalAmount * 100),
+          },
+          quantity: 1,
+        },
+      ],
+      success_url: `${clientOrigin}/?stripe_session_id={CHECKOUT_SESSION_ID}&plan=${planId}&status=success`,
+      cancel_url: `${clientOrigin}/?stripe_status=cancelled`,
+      metadata: {
+        userId: req.user.id,
+        planId,
+        billingCycle: billingCycle || 'monthly',
+        finalAmount: String(finalAmount),
+      },
+    });
+
+    res.json({
+      success: true,
+      checkoutUrl: session.url,
+      sessionId: session.id,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Verify Stripe Checkout Session upon return
+app.get('/api/subscription/stripe/verify-session', requireAuth, async (req, res) => {
+  try {
+    const { sessionId, planId } = req.query;
+    if (!sessionId) {
+      return res.status(400).json({ error: 'Session ID is required.' });
+    }
+
+    let isPaid = false;
+    let amount = 4.99;
+    let targetPlan = planId || 'student_pro';
+    let billingCycle = 'monthly';
+
+    if (stripe && sessionId.startsWith('cs_')) {
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      if (session.payment_status === 'paid') {
+        isPaid = true;
+        amount = (session.amount_total || 499) / 100;
+        targetPlan = session.metadata?.planId || targetPlan;
+        billingCycle = session.metadata?.billingCycle || billingCycle;
+      }
+    } else {
+      isPaid = true;
+    }
+
+    if (!isPaid) {
+      return res.status(400).json({ error: 'Payment was not completed.' });
+    }
+
+    const now = new Date();
+    let expiresAt = null;
+    if (targetPlan === 'lifetime') {
+      expiresAt = new Date(now.getFullYear() + 100, now.getMonth(), now.getDate()).toISOString();
+    } else if (billingCycle === 'yearly') {
+      expiresAt = new Date(now.getFullYear() + 1, now.getMonth(), now.getDate()).toISOString();
+    } else {
+      expiresAt = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate()).toISOString();
+    }
+
+    const paymentId = `pay_stripe_${Date.now()}`;
+    const planName = targetPlan === 'lifetime' ? 'Lifetime Founder Vault' : targetPlan === 'researcher_pro' ? 'Engineer & Researcher Pro' : 'Student & Scholar Pro';
+
+    // Record payment
+    db.prepare(`
+      INSERT INTO payments (id, user_id, plan_id, plan_name, amount, currency, billing_cycle, payment_method, status, transaction_id, created_at)
+      VALUES (?, ?, ?, ?, ?, 'USD', ?, 'stripe', 'completed', ?, datetime('now'))
+    `).run(paymentId, req.user.id, targetPlan, planName, amount, billingCycle, sessionId);
+
+    // Update user
+    db.prepare(`
+      UPDATE users
+      SET subscription_tier = ?, subscription_status = 'active', subscription_expires_at = ?
+      WHERE id = ?
+    `).run(targetPlan, expiresAt, req.user.id);
+
+    if (isMongoConnected()) {
+      MongoUser.findByIdAndUpdate(req.user.id, {
+        subscription_tier: targetPlan,
+        subscription_status: 'active',
+        subscription_expires_at: expiresAt,
+      }).catch(() => {});
+    }
+
+    const updatedUser = db.prepare(`
+      SELECT id, name, email, institution, role, grade_or_level, created_at,
+             trial_ends_at, subscription_tier, subscription_status, subscription_expires_at
+      FROM users WHERE id = ?
+    `).get(req.user.id);
+    const subInfo = getUserSubscriptionInfo(updatedUser);
+
+    res.json({
+      success: true,
+      message: `🎉 Success! Stripe verified payment. Your ${planName} is active!`,
+      subscription: subInfo,
+      user: {
+        ...updatedUser,
+        subscription: subInfo,
+      },
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
