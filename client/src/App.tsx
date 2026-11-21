@@ -31,7 +31,8 @@ import {
   ArrowUpDown,
   Star,
   Pin,
-  Clock
+  Clock,
+  Brain
 } from 'lucide-react';
 
 export function App() {
@@ -53,6 +54,7 @@ export function App() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [stats, setStats] = useState<VaultStats | null>(null);
   const [loading, setLoading] = useState(false);
+  const [vaultLoaded, setVaultLoaded] = useState(false);
 
   // Filters & Sorting
   const [activeSubjectId, setActiveSubjectId] = useState<string | null>(null);
@@ -124,12 +126,28 @@ export function App() {
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
   }, []);
 
-  // Check existing session on load
+  // Check existing session on load & pre-fetch initial vault data to prevent flicker & layout shift
   useEffect(() => {
     api.getMe()
-      .then((res) => {
+      .then(async (res) => {
         if (res?.user) {
           setCurrentUser(res.user);
+          try {
+            setLoading(true);
+            const [subs, st, fetchedNotes] = await Promise.all([
+              api.getSubjects(),
+              api.getStats().catch(() => null),
+              api.getNotes(),
+            ]);
+            setSubjects(subs || []);
+            setStats(st);
+            setNotes(fetchedNotes || []);
+          } catch (e) {
+            console.error('Initial vault load error:', e);
+          } finally {
+            setLoading(false);
+            setVaultLoaded(true);
+          }
         }
       })
       .catch(() => {
@@ -161,20 +179,22 @@ export function App() {
       console.error('Error loading vault data:', err);
     } finally {
       setLoading(false);
+      setVaultLoaded(true);
     }
   };
 
   useEffect(() => {
-    if (currentUser) {
+    if (currentUser && vaultLoaded) {
       loadData();
     }
-  }, [currentUser, activeSubjectId, searchQuery, activeTag]);
+  }, [activeSubjectId, searchQuery, activeTag]);
 
   const handleLogout = () => {
     api.logout();
     setCurrentUser(null);
     setNotes([]);
     setSubjects([]);
+    setVaultLoaded(false);
     setActiveNote(null);
     setIsEditing(false);
     setIsCreating(false);
@@ -315,9 +335,14 @@ export function App() {
 
   if (authChecking) {
     return (
-      <div className="min-h-screen bg-[#0b0f19] flex items-center justify-center text-slate-400 text-xs">
-        <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping mr-2" />
-        <span>Loading DevBrain Vault...</span>
+      <div className="min-h-screen bg-transparent flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 text-xs">
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-sky-500 to-blue-600 flex items-center justify-center text-white shadow-xl shadow-sky-500/25 mb-4 animate-pulse">
+          <Brain className="w-6 h-6" />
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-sky-500 dark:bg-cyan-400 animate-ping" />
+          <span className="font-semibold text-slate-700 dark:text-slate-300">Loading DevBrain Vault...</span>
+        </div>
       </div>
     );
   }
@@ -453,7 +478,7 @@ export function App() {
                 loadData();
               }}
             />
-          ) : notes.length === 0 && subjects.length === 0 && !searchQuery ? (
+          ) : vaultLoaded && notes.length === 0 && subjects.length === 0 && !searchQuery ? (
             /* Mode 3: Fresh Blank Slate Onboarding */
             <div className="max-w-2xl mx-auto py-12 px-4 text-center">
               <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-sky-500/20 to-blue-500/20 border border-sky-500/30 flex items-center justify-center mx-auto mb-5 text-sky-500 dark:text-cyan-400 shadow-lg shadow-sky-500/10">

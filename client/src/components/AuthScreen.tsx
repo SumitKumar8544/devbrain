@@ -62,9 +62,9 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0b0f19] flex flex-col justify-center items-center px-4 py-12 relative overflow-hidden">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#080c14] text-slate-900 dark:text-slate-100 flex flex-col justify-center items-center px-4 py-12 relative overflow-hidden transition-colors">
       {/* Background Glow effects */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-sky-500/10 dark:bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
 
       {/* Main Container */}
@@ -72,21 +72,21 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
         
         {/* Brand Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex w-14 h-14 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 items-center justify-center shadow-xl shadow-cyan-500/25 text-white mb-4">
+          <div className="inline-flex w-14 h-14 rounded-2xl bg-gradient-to-tr from-sky-500 to-blue-600 items-center justify-center shadow-xl shadow-sky-500/25 text-white mb-4">
             <Brain className="w-8 h-8 animate-pulse" />
           </div>
-          <h1 className="text-3xl font-black text-white tracking-tight">
-            DevBrain <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">Vault</span>
+          <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+            DevBrain <span className="bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 dark:from-cyan-400 dark:to-blue-400 bg-clip-text text-transparent">Vault</span>
           </h1>
-          <p className="text-slate-400 text-xs sm:text-sm mt-1.5 font-medium">
+          <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm mt-1.5 font-medium">
             Save notes from photos, PDFs & links. AI helps you understand anything.
           </p>
         </div>
 
         {/* Card */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
+        <div className="bg-white/80 dark:bg-slate-900/80 border border-white/80 dark:border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
           {/* Tab Switcher */}
-          <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 mb-6">
+          <div className="flex bg-slate-100 dark:bg-slate-950 p-1 rounded-xl border border-slate-200 dark:border-slate-800 mb-6">
             <button
               type="button"
               onClick={() => {
@@ -95,8 +95,8 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
               }}
               className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
                 !isLogin
-                  ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 text-white shadow-md'
+                  : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
               }`}
             >
               Create Account (Sign Up)
@@ -109,8 +109,8 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
               }}
               className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
                 isLogin
-                  ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 text-white shadow-md'
+                  : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
               }`}
             >
               Sign In
@@ -120,7 +120,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-800/80 text-rose-300 text-xs">
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800/80 text-rose-600 dark:text-rose-300 text-xs">
                 {error}
               </div>
             )}
@@ -128,53 +128,53 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
             {!isLogin && (
               <>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                     Your Name *
                   </label>
                   <div className="relative">
-                    <UserIcon className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <UserIcon className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
                       required
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="e.g. Sumit Kumar"
-                      className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-200 text-xs focus:outline-none focus:border-cyan-500 transition-all placeholder:text-slate-600"
+                      className="w-full pl-9 pr-3 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs focus:outline-none focus:border-sky-500 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                       I am a...
                     </label>
                     <select
                       value={role}
                       onChange={(e) => setRole(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-200 text-xs focus:outline-none focus:border-cyan-500 transition-all"
+                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs focus:outline-none focus:border-sky-500 transition-all"
                     >
-                      <option value="School Student">School Student</option>
-                      <option value="College Student">College Student</option>
-                      <option value="Self-Learner">Self-Learner</option>
-                      <option value="Software Developer">Software Developer</option>
-                      <option value="Professional / Researcher">Professional / Researcher</option>
-                      <option value="Other">Other</option>
+                      <option value="School Student" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">School Student</option>
+                      <option value="College Student" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">College Student</option>
+                      <option value="Self-Learner" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Self-Learner</option>
+                      <option value="Software Developer" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Software Developer</option>
+                      <option value="Professional / Researcher" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Professional / Researcher</option>
+                      <option value="Other" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Other</option>
                     </select>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                       School / College / Org
                     </label>
                     <div className="relative">
-                      <GraduationCap className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <GraduationCap className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                       <input
                         type="text"
                         value={institution}
                         onChange={(e) => setInstitution(e.target.value)}
                         placeholder="Optional"
-                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-200 text-xs focus:outline-none focus:border-cyan-500 transition-all placeholder:text-slate-600"
+                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs focus:outline-none focus:border-sky-500 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600"
                       />
                     </div>
                   </div>
@@ -183,35 +183,35 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
             )}
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                 Email Address *
               </label>
               <div className="relative">
-                <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@email.com"
-                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-200 text-xs focus:outline-none focus:border-cyan-500 transition-all placeholder:text-slate-600"
+                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs focus:outline-none focus:border-sky-500 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                 Password *
               </label>
               <div className="relative">
-                <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-200 text-xs focus:outline-none focus:border-cyan-500 transition-all placeholder:text-slate-600"
+                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs focus:outline-none focus:border-sky-500 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600"
                 />
               </div>
             </div>
@@ -219,7 +219,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-xs font-bold shadow-lg shadow-cyan-500/20 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-50"
+              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-sky-500/20 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-50"
             >
               {loading ? (
                 <span>Please wait...</span>
@@ -233,28 +233,28 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
           </form>
 
           {/* Privacy Note */}
-          <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-center gap-1.5 text-[11px] text-slate-400">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+          <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800/80 flex items-center justify-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
             <span>100% Private: Stored locally on your own computer for long-term safe keeping</span>
           </div>
         </div>
 
         {/* Features highlight beneath */}
         <div className="grid grid-cols-4 gap-2 mt-6 text-center">
-          <div className="p-2.5 rounded-xl bg-slate-900/50 border border-slate-800/60 text-slate-400">
-            <Camera className="w-4 h-4 text-cyan-400 mx-auto mb-1" />
+          <div className="p-2.5 rounded-xl bg-white/70 dark:bg-slate-900/50 backdrop-blur-md border border-white/80 dark:border-white/10 text-slate-600 dark:text-slate-400 shadow-xs">
+            <Camera className="w-4 h-4 text-sky-500 dark:text-cyan-400 mx-auto mb-1" />
             <span className="text-[10px] block font-medium">Photos</span>
           </div>
-          <div className="p-2.5 rounded-xl bg-slate-900/50 border border-slate-800/60 text-slate-400">
-            <FileText className="w-4 h-4 text-purple-400 mx-auto mb-1" />
+          <div className="p-2.5 rounded-xl bg-white/70 dark:bg-slate-900/50 backdrop-blur-md border border-white/80 dark:border-white/10 text-slate-600 dark:text-slate-400 shadow-xs">
+            <FileText className="w-4 h-4 text-purple-500 dark:text-purple-400 mx-auto mb-1" />
             <span className="text-[10px] block font-medium">PDF Docs</span>
           </div>
-          <div className="p-2.5 rounded-xl bg-slate-900/50 border border-slate-800/60 text-slate-400">
-            <Link2 className="w-4 h-4 text-indigo-400 mx-auto mb-1" />
+          <div className="p-2.5 rounded-xl bg-white/70 dark:bg-slate-900/50 backdrop-blur-md border border-white/80 dark:border-white/10 text-slate-600 dark:text-slate-400 shadow-xs">
+            <Link2 className="w-4 h-4 text-indigo-500 dark:text-indigo-400 mx-auto mb-1" />
             <span className="text-[10px] block font-medium">Web Links</span>
           </div>
-          <div className="p-2.5 rounded-xl bg-slate-900/50 border border-slate-800/60 text-slate-400">
-            <Sparkles className="w-4 h-4 text-emerald-400 mx-auto mb-1" />
+          <div className="p-2.5 rounded-xl bg-white/70 dark:bg-slate-900/50 backdrop-blur-md border border-white/80 dark:border-white/10 text-slate-600 dark:text-slate-400 shadow-xs">
+            <Sparkles className="w-4 h-4 text-emerald-500 dark:text-emerald-400 mx-auto mb-1" />
             <span className="text-[10px] block font-medium">AI Helper</span>
           </div>
         </div>
