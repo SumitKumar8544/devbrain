@@ -75,14 +75,31 @@ class ApiService {
     role?: string;
     grade_or_level?: string;
   }): Promise<{ user: User }> {
-    const res = await fetch(`${API_BASE}/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
+    let res: Response;
+    try {
+      res = await fetch(`${API_BASE}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+    } catch {
+      throw new Error('Unable to connect to DevBrain backend server on port 5000. Please ensure the backend is running.');
+    }
+
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Failed to register account');
+      const text = await res.text().catch(() => '');
+      let errMsg = '';
+      try {
+        const json = JSON.parse(text);
+        errMsg = json.error || json.message;
+      } catch {
+        if (text.includes('ECONNREFUSED') || res.status === 502 || res.status === 504) {
+          errMsg = 'Backend server on port 5000 is not running or unreachable.';
+        } else {
+          errMsg = text.slice(0, 150) || `Server error (Status ${res.status})`;
+        }
+      }
+      throw new Error(errMsg || 'Failed to register account');
     }
     const result = await res.json();
     this.setUserId(result.user.id);
@@ -90,14 +107,31 @@ class ApiService {
   }
 
   async login(data: { email: string; password: string }): Promise<{ user: User }> {
-    const res = await fetch(`${API_BASE}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
+    let res: Response;
+    try {
+      res = await fetch(`${API_BASE}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+    } catch {
+      throw new Error('Unable to connect to DevBrain backend server on port 5000. Please ensure the backend is running.');
+    }
+
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Invalid email or password');
+      const text = await res.text().catch(() => '');
+      let errMsg = '';
+      try {
+        const json = JSON.parse(text);
+        errMsg = json.error || json.message;
+      } catch {
+        if (text.includes('ECONNREFUSED') || res.status === 502 || res.status === 504) {
+          errMsg = 'Backend server on port 5000 is not running or unreachable.';
+        } else {
+          errMsg = text.slice(0, 150) || `Server error (Status ${res.status})`;
+        }
+      }
+      throw new Error(errMsg || 'Invalid email or password');
     }
     const result = await res.json();
     this.setUserId(result.user.id);

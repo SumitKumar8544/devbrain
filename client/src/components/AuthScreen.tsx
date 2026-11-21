@@ -120,8 +120,20 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800/80 text-rose-600 dark:text-rose-300 text-xs">
-                {error}
+              <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800/80 text-rose-600 dark:text-rose-300 text-xs flex flex-col gap-1.5">
+                <div className="font-semibold leading-relaxed">{error}</div>
+                {!isLogin && (error.toLowerCase().includes('already exists') || error.toLowerCase().includes('sign in')) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsLogin(true);
+                      setError(null);
+                    }}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-sky-600 dark:text-sky-400 hover:underline mt-0.5 text-left cursor-pointer"
+                  >
+                    👉 Click here to Sign In with this email
+                  </button>
+                )}
               </div>
             )}
 
