@@ -324,7 +324,7 @@ export function App() {
   });
 
   return (
-    <div className="min-h-screen bg-slate-50/70 dark:bg-[#0b0f19] text-slate-900 dark:text-slate-100 flex flex-col font-sans selection:bg-sky-500/30 selection:text-sky-900 dark:selection:text-sky-200 transition-colors duration-200">
+    <div className="min-h-screen bg-transparent text-slate-900 dark:text-slate-100 flex flex-col font-sans selection:bg-sky-500/30 selection:text-sky-900 dark:selection:text-sky-200 transition-colors duration-200">
       {/* Top Navbar */}
       <Navbar
         user={currentUser}
@@ -499,14 +499,14 @@ export function App() {
 
                 <div className="flex items-center gap-2.5">
                   <Filter className="w-3.5 h-3.5 text-slate-400" />
-                  <div className="flex items-center bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full p-1 text-xs shadow-xs">
+                  <div className="flex items-center bg-white/70 dark:bg-slate-900/60 backdrop-blur-md border border-white/80 dark:border-white/10 rounded-full p-1 text-xs shadow-xs">
                     {(['All', 'Beginner', 'Intermediate', 'Advanced'] as const).map((diff) => (
                       <button
                         key={diff}
                         onClick={() => setDifficultyFilter(diff)}
                         className={`px-3 py-1 rounded-full font-semibold transition-all ${
                           difficultyFilter === diff
-                            ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-xs'
+                            ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-300 shadow-xs'
                             : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200 font-medium'
                         }`}
                       >

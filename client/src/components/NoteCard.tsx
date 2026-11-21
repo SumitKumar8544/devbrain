@@ -76,12 +76,15 @@ export const NoteCard: React.FC<NoteCardProps> = ({
   return (
     <div
       onClick={() => onSelect(note)}
-      className={`group relative bg-white dark:bg-slate-900/80 border ${
+      className={`group relative bg-white/80 dark:bg-slate-900/65 backdrop-blur-xl border ${
         note.pinned
-          ? 'border-amber-400/50 dark:border-amber-500/40 shadow-sm shadow-amber-500/10'
-          : 'border-slate-200/90 dark:border-slate-800/80 hover:border-sky-400/60 dark:hover:border-sky-500/50'
-      } rounded-2xl p-4.5 cursor-pointer transition-all duration-200 hover:shadow-xl hover:shadow-sky-500/5 hover:-translate-y-1 flex flex-col justify-between overflow-hidden`}
+          ? 'border-amber-400/60 dark:border-amber-500/40 shadow-md shadow-amber-500/10'
+          : 'border-white/80 dark:border-white/10 hover:border-sky-400/60 dark:hover:border-sky-400/50'
+      } rounded-2xl p-4.5 cursor-pointer transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.35)] hover:shadow-[0_20px_40px_rgb(14,165,233,0.16)] hover:-translate-y-1.5 flex flex-col justify-between overflow-hidden`}
     >
+      {/* Subtle Specular Glow in top right */}
+      <div className="pointer-events-none absolute -top-20 -right-20 w-44 h-44 bg-gradient-to-br from-white/60 to-transparent dark:from-white/5 rounded-full blur-2xl group-hover:scale-125 transition-transform duration-500" />
+
       {/* Decorative top color accent bar */}
       <div
         className="absolute top-0 left-0 right-0 h-1 transition-all group-hover:h-1.5"

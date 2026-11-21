@@ -50,7 +50,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   return (
-    <aside className="w-64 bg-white/70 dark:bg-slate-900/60 border-r border-slate-200/80 dark:border-slate-800/80 p-4 flex flex-col h-[calc(100vh-61px)] overflow-y-auto transition-colors">
+    <aside className="w-64 bg-white/60 dark:bg-slate-900/50 backdrop-blur-xl border-r border-white/60 dark:border-white/10 p-4 flex flex-col h-[calc(100vh-61px)] overflow-y-auto transition-colors">
       {/* Quick Filters */}
       <div className="mb-6">
         <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2 px-2">
@@ -187,7 +187,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {subjects.length === 0 ? (
           <div
             onClick={onAddSubject}
-            className="p-3.5 rounded-xl border border-dashed border-sky-400/40 bg-sky-500/5 hover:bg-sky-500/10 transition-all text-center cursor-pointer group shadow-xs"
+            className="p-3.5 rounded-xl border border-dashed border-sky-400/40 bg-white/40 dark:bg-sky-500/5 backdrop-blur-sm hover:bg-white/70 dark:hover:bg-sky-500/10 transition-all text-center cursor-pointer group shadow-xs"
           >
             <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-sky-400 to-blue-600 text-white flex items-center justify-center mx-auto mb-2 shadow-xs group-hover:scale-105 transition-transform">
               <FolderPlus className="w-4 h-4" />
@@ -299,23 +299,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Quick Keyboard Shortcuts Footer */}
       <div className="mt-auto pt-4 border-t border-slate-200/80 dark:border-slate-800/80">
-        <div className="p-3 rounded-xl bg-slate-100/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 shadow-xs">
+        <div className="p-3 rounded-xl bg-white/70 dark:bg-slate-900/50 backdrop-blur-md border border-white/80 dark:border-white/10 shadow-sm">
           <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 mb-2 font-semibold">
             <span>Quick Shortcuts</span>
-            <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-slate-800 text-[10px] font-mono text-sky-600 dark:text-sky-400 border border-slate-200 dark:border-slate-700 shadow-xs">⌘K</kbd>
+            <kbd className="px-1.5 py-0.5 rounded-md bg-white/90 dark:bg-slate-800 text-[10px] font-mono text-sky-600 dark:text-sky-400 border border-slate-200 dark:border-slate-700 shadow-2xs">⌘K</kbd>
           </div>
           <div className="space-y-1.5 text-[11px] text-slate-600 dark:text-slate-400">
             <div className="flex items-center justify-between">
               <span>Fast Navigator</span>
-              <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-slate-800 text-[10px] font-mono border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 shadow-2xs">Ctrl + K</kbd>
+              <kbd className="px-1.5 py-0.5 rounded-md bg-white/90 dark:bg-slate-800 text-[10px] font-mono border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 shadow-2xs">Ctrl + K</kbd>
             </div>
             <div className="flex items-center justify-between">
               <span>New Note</span>
-              <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-slate-800 text-[10px] font-mono border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 shadow-2xs">Ctrl + N</kbd>
+              <kbd className="px-1.5 py-0.5 rounded-md bg-white/90 dark:bg-slate-800 text-[10px] font-mono border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 shadow-2xs">Ctrl + N</kbd>
             </div>
             <div className="flex items-center justify-between">
               <span>AI Copilot</span>
-              <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-slate-800 text-[10px] font-mono border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 shadow-2xs">Ctrl + J</kbd>
+              <kbd className="px-1.5 py-0.5 rounded-md bg-white/90 dark:bg-slate-800 text-[10px] font-mono border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 shadow-2xs">Ctrl + J</kbd>
             </div>
           </div>
         </div>
