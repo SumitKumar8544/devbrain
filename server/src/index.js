@@ -109,7 +109,7 @@ app.use('/uploads', express.static(uploadsDir));
 
 // Initialize DB schema & cloud databases
 initDB();
-initMongo();
+await initMongo(db);
 
 // ==========================================
 // 3. SECURE FILE UPLOAD CONFIGURATION
@@ -197,6 +197,7 @@ async function requireAuth(req, res, next) {
   }
 
   let user = null;
+  // 1. Primary Authorization Authority: MongoDB Atlas
   if (isMongoConnected()) {
     try {
       const doc = await MongoUser.findById(userId).lean();
@@ -205,9 +206,9 @@ async function requireAuth(req, res, next) {
           id: doc._id,
           name: doc.name,
           email: doc.email,
-          institution: doc.institution,
-          role: doc.role,
-          grade_or_level: doc.grade_or_level,
+          institution: doc.institution || doc.college || '',
+          role: doc.role || 'Learner',
+          grade_or_level: doc.grade_or_level || doc.branch || 'General',
           created_at: doc.created_at,
           trial_ends_at: doc.trial_ends_at,
           subscription_tier: doc.subscription_tier,
@@ -216,10 +217,11 @@ async function requireAuth(req, res, next) {
         };
       }
     } catch (e) {
-      // ignore and fallback
+      console.warn('⚠️ [Auth] MongoDB authorization lookup error:', e.message);
     }
   }
 
+  // 2. Secondary fallback cache: SQLite
   if (!user) {
     user = db.prepare(`
       SELECT id, name, email, institution, role, grade_or_level, created_at,
@@ -250,11 +252,19 @@ function requireActiveSubscription(req, res, next) {
   next();
 }
 
-app.get('/api/health', (req, res) => {
+app.get('/api/health', async (req, res) => {
+  let mongoUsersCount = 0;
+  if (isMongoConnected()) {
+    try {
+      mongoUsersCount = await MongoUser.countDocuments();
+    } catch {}
+  }
   res.json({
     status: 'ok',
     service: 'DevBrain Vault API',
     database: isMongoConnected() ? 'MongoDB Atlas (Cloud)' : 'SQLite (Local)',
+    mongoConnected: isMongoConnected(),
+    mongoUsers: mongoUsersCount,
     storage: 'Supabase Storage (Cloud) + Local Disk Fallback',
     time: new Date().toISOString()
   });
@@ -345,12 +355,14 @@ app.post('/api/auth/register', async (req, res) => {
       return res.status(400).json({ error: 'Password must be at least 6 characters long.' });
     }
     
-    // Check in MongoDB Atlas or SQLite
+    // Check if account already exists in MongoDB Atlas (Primary Authority)
     let existing = null;
     if (isMongoConnected()) {
       try {
         existing = await MongoUser.findOne({ email: cleanEmail }).lean();
-      } catch (e) {}
+      } catch (e) {
+        console.warn('⚠️ [Register] MongoDB existence check error:', e.message);
+      }
     }
     if (!existing) {
       existing = db.prepare('SELECT id FROM users WHERE email = ?').get(cleanEmail);
@@ -364,54 +376,70 @@ app.post('/api/auth/register', async (req, res) => {
     const passwordHash = hashPassword(password);
     const now = new Date();
     // 3 Months Free Trial = 90 days from registration
-    const trialEndsAt = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString();
+    const trialEndsAtDate = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
+    const trialEndsAtIso = trialEndsAtDate.toISOString();
 
-    // Save to local SQLite
-    db.prepare(`
-      INSERT INTO users (id, name, email, password, institution, role, grade_or_level, trial_ends_at, subscription_tier, subscription_status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'free_trial', 'trialing')
-    `).run(
-      userId,
-      name.trim().slice(0, 80),
-      cleanEmail,
-      passwordHash,
-      institution ? String(institution).trim().slice(0, 100) : '',
-      role ? String(role).trim().slice(0, 50) : 'Learner',
-      grade_or_level ? String(grade_or_level).trim().slice(0, 50) : 'General',
-      trialEndsAt
-    );
+    const cleanName = name.trim().slice(0, 80);
+    const cleanInst = institution ? String(institution).trim().slice(0, 100) : '';
+    const cleanRole = role ? String(role).trim().slice(0, 50) : 'Learner';
+    const cleanGrade = grade_or_level ? String(grade_or_level).trim().slice(0, 50) : 'General';
 
-    // Save to MongoDB Atlas
+    // 1. Primary Store: Save directly to MongoDB Atlas
+    let mongoSaved = false;
     if (isMongoConnected()) {
       try {
         await MongoUser.create({
           _id: userId,
-          name: name.trim().slice(0, 80),
+          name: cleanName,
           email: cleanEmail,
           password: passwordHash,
-          institution: institution ? String(institution).trim().slice(0, 100) : '',
-          role: role ? String(role).trim().slice(0, 50) : 'Learner',
-          grade_or_level: grade_or_level ? String(grade_or_level).trim().slice(0, 50) : 'General',
-          trial_ends_at: trialEndsAt,
+          institution: cleanInst,
+          role: cleanRole,
+          grade_or_level: cleanGrade,
+          trial_ends_at: trialEndsAtDate,
           subscription_tier: 'free_trial',
           subscription_status: 'trialing',
+          created_at: now,
         });
+        mongoSaved = true;
+        console.log(`✅ [MongoDB Atlas] Registered and saved new user: ${cleanEmail} (${userId})`);
       } catch (mongoErr) {
-        console.warn('[Auth] MongoUser create warning:', mongoErr.message);
+        console.error('❌ [MongoDB Atlas] User registration save failed:', mongoErr.message);
+        throw new Error(`Failed to save user account to MongoDB Atlas: ${mongoErr.message}`);
       }
+    }
+
+    // 2. Secondary Sync: Mirror to local SQLite for relational queries
+    try {
+      db.prepare(`
+        INSERT OR REPLACE INTO users (id, name, email, password, institution, role, grade_or_level, trial_ends_at, subscription_tier, subscription_status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'free_trial', 'trialing')
+      `).run(
+        userId,
+        cleanName,
+        cleanEmail,
+        passwordHash,
+        cleanInst,
+        cleanRole,
+        cleanGrade,
+        trialEndsAtIso
+      );
+    } catch (sqliteErr) {
+      console.warn('⚠️ [Cache] Local SQLite mirror notice:', sqliteErr.message);
     }
 
     const user = {
       id: userId,
-      name: name.trim().slice(0, 80),
+      name: cleanName,
       email: cleanEmail,
-      institution: institution ? String(institution).trim().slice(0, 100) : '',
-      role: role ? String(role).trim().slice(0, 50) : 'Learner',
-      grade_or_level: grade_or_level ? String(grade_or_level).trim().slice(0, 50) : 'General',
+      institution: cleanInst,
+      role: cleanRole,
+      grade_or_level: cleanGrade,
       created_at: now.toISOString(),
-      trial_ends_at: trialEndsAt,
+      trial_ends_at: trialEndsAtIso,
       subscription_tier: 'free_trial',
       subscription_status: 'trialing',
+      authStore: mongoSaved ? 'MongoDB Atlas' : 'Local SQLite',
     };
     user.subscription = getUserSubscriptionInfo(user);
 
@@ -438,7 +466,7 @@ app.post('/api/auth/login', async (req, res) => {
 
     let user = null;
 
-    // Check MongoDB Atlas first if connected
+    // 1. Primary Authority: Authenticate against MongoDB Atlas
     if (isMongoConnected()) {
       try {
         const mongoUser = await MongoUser.findOne({ email: cleanEmail, password: passwordHash }).lean();
@@ -447,16 +475,19 @@ app.post('/api/auth/login', async (req, res) => {
             id: mongoUser._id,
             name: mongoUser.name,
             email: mongoUser.email,
-            institution: mongoUser.institution,
-            role: mongoUser.role,
-            grade_or_level: mongoUser.grade_or_level,
+            institution: mongoUser.institution || mongoUser.college || '',
+            role: mongoUser.role || 'Learner',
+            grade_or_level: mongoUser.grade_or_level || mongoUser.branch || 'General',
             created_at: mongoUser.created_at,
             trial_ends_at: mongoUser.trial_ends_at,
             subscription_tier: mongoUser.subscription_tier,
             subscription_status: mongoUser.subscription_status,
             subscription_expires_at: mongoUser.subscription_expires_at,
+            authStore: 'MongoDB Atlas',
           };
-          // Sync into local SQLite for fast relational joins
+          console.log(`✅ [MongoDB Atlas] Successful login: ${cleanEmail}`);
+
+          // Mirror into local SQLite for fast relational joins
           try {
             db.prepare(`
               INSERT OR REPLACE INTO users (id, name, email, password, institution, role, grade_or_level, trial_ends_at, subscription_tier, subscription_status, subscription_expires_at)
@@ -477,18 +508,58 @@ app.post('/api/auth/login', async (req, res) => {
           } catch (syncErr) {}
         }
       } catch (mongoErr) {
-        console.warn('[Auth] MongoDB login query error:', mongoErr.message);
+        console.warn('⚠️ [Auth] MongoDB login query error:', mongoErr.message);
       }
     }
 
-    // Fallback to SQLite
+    // 2. Secondary Fallback: SQLite (and auto-migrate to MongoDB Atlas if found)
     if (!user) {
-      user = db.prepare(`
-        SELECT id, name, email, institution, role, grade_or_level, created_at,
+      const sqliteUser = db.prepare(`
+        SELECT id, name, email, password, institution, role, grade_or_level, created_at,
                trial_ends_at, subscription_tier, subscription_status, subscription_expires_at
         FROM users
         WHERE email = ? AND password = ?
       `).get(cleanEmail, passwordHash);
+
+      if (sqliteUser) {
+        user = {
+          id: sqliteUser.id,
+          name: sqliteUser.name,
+          email: sqliteUser.email,
+          institution: sqliteUser.institution || '',
+          role: sqliteUser.role || 'Learner',
+          grade_or_level: sqliteUser.grade_or_level || 'General',
+          created_at: sqliteUser.created_at,
+          trial_ends_at: sqliteUser.trial_ends_at,
+          subscription_tier: sqliteUser.subscription_tier,
+          subscription_status: sqliteUser.subscription_status,
+          subscription_expires_at: sqliteUser.subscription_expires_at,
+          authStore: 'MongoDB Atlas (Migrated)',
+        };
+
+        // Auto-save account into MongoDB Atlas
+        if (isMongoConnected()) {
+          MongoUser.updateOne(
+            { _id: user.id },
+            {
+              $set: {
+                _id: user.id,
+                name: user.name,
+                email: user.email,
+                password: passwordHash,
+                institution: user.institution,
+                role: user.role,
+                grade_or_level: user.grade_or_level,
+                trial_ends_at: user.trial_ends_at ? new Date(user.trial_ends_at) : new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+                subscription_tier: user.subscription_tier || 'free_trial',
+                subscription_status: user.subscription_status || 'trialing',
+                subscription_expires_at: user.subscription_expires_at ? new Date(user.subscription_expires_at) : null,
+              }
+            },
+            { upsert: true }
+          ).catch((e) => console.warn('⚠️ [Migration] Auto-migrate error:', e.message));
+        }
+      }
     }
 
     if (!user) {
@@ -514,37 +585,39 @@ app.put('/api/auth/profile', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Full name is required.' });
     }
 
-    // Update in SQLite
+    const cleanName = name.trim();
+    const cleanInst = institution ? institution.trim() : '';
+    const cleanRole = role ? role.trim() : 'Learner';
+    const cleanGrade = grade_or_level ? grade_or_level.trim() : 'General';
+
+    // 1. Primary Authority: Update in MongoDB Atlas
+    if (isMongoConnected()) {
+      try {
+        await MongoUser.findByIdAndUpdate(req.user.id, {
+          name: cleanName,
+          institution: cleanInst,
+          role: cleanRole,
+          grade_or_level: cleanGrade,
+        });
+        console.log(`✅ [MongoDB Atlas] Updated profile for user ${req.user.id}`);
+      } catch (e) {
+        console.warn('⚠️ [Profile] MongoDB update warning:', e.message);
+      }
+    }
+
+    // 2. Secondary Sync: Update SQLite
     db.prepare(`
       UPDATE users
       SET name = ?, institution = ?, role = ?, grade_or_level = ?
       WHERE id = ?
-    `).run(
-      name.trim(),
-      institution ? institution.trim() : '',
-      role ? role.trim() : 'Learner',
-      grade_or_level ? grade_or_level.trim() : 'General',
-      req.user.id
-    );
-
-    // Update in MongoDB Atlas
-    if (isMongoConnected()) {
-      try {
-        await MongoUser.findByIdAndUpdate(req.user.id, {
-          name: name.trim(),
-          institution: institution ? institution.trim() : '',
-          role: role ? role.trim() : 'Learner',
-          grade_or_level: grade_or_level ? grade_or_level.trim() : 'General',
-        });
-      } catch (e) {}
-    }
+    `).run(cleanName, cleanInst, cleanRole, cleanGrade, req.user.id);
 
     const updatedUser = {
       ...req.user,
-      name: name.trim(),
-      institution: institution ? institution.trim() : '',
-      role: role ? role.trim() : 'Learner',
-      grade_or_level: grade_or_level ? grade_or_level.trim() : 'General',
+      name: cleanName,
+      institution: cleanInst,
+      role: cleanRole,
+      grade_or_level: cleanGrade,
     };
     res.json({ success: true, user: updatedUser });
   } catch (err) {
@@ -564,13 +637,15 @@ app.put('/api/auth/password', requireAuth, async (req, res) => {
 
     const currentHash = hashPassword(currentPassword);
     
-    // Verify password in MongoDB or SQLite
+    // Verify password in MongoDB Atlas (Primary Authority)
     let valid = false;
     if (isMongoConnected()) {
       try {
         const u = await MongoUser.findById(req.user.id).lean();
         if (u && u.password === currentHash) valid = true;
-      } catch (e) {}
+      } catch (e) {
+        console.warn('⚠️ [Password] MongoDB check error:', e.message);
+      }
     }
     if (!valid) {
       const u = db.prepare('SELECT id FROM users WHERE id = ? AND password = ?').get(req.user.id, currentHash);
@@ -582,15 +657,21 @@ app.put('/api/auth/password', requireAuth, async (req, res) => {
     }
 
     const newHash = hashPassword(newPassword);
-    db.prepare('UPDATE users SET password = ? WHERE id = ?').run(newHash, req.user.id);
 
+    // 1. Update in MongoDB Atlas
     if (isMongoConnected()) {
       try {
         await MongoUser.findByIdAndUpdate(req.user.id, { password: newHash });
-      } catch (e) {}
+        console.log(`✅ [MongoDB Atlas] Password updated for user: ${req.user.id}`);
+      } catch (e) {
+        console.warn('⚠️ [Password] MongoDB update error:', e.message);
+      }
     }
 
-    res.json({ success: true, message: 'Password updated successfully.' });
+    // 2. Sync to local SQLite
+    db.prepare('UPDATE users SET password = ? WHERE id = ?').run(newHash, req.user.id);
+
+    res.json({ success: true, message: 'Password updated successfully in MongoDB Atlas.' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1303,7 +1384,7 @@ app.post('/api/subscription/checkout', requireAuth, async (req, res) => {
       WHERE id = ?
     `).run(planId, expiresAt, req.user.id);
 
-    // Update in MongoDB if connected
+    // Update in MongoDB Atlas (Primary)
     if (isMongoConnected()) {
       try {
         await MongoUser.findByIdAndUpdate(req.user.id, {
@@ -1312,16 +1393,39 @@ app.post('/api/subscription/checkout', requireAuth, async (req, res) => {
           subscription_expires_at: expiresAt,
         });
       } catch (e) {
-        console.warn('[Subscription] MongoUser update warning:', e.message);
+        console.warn('⚠️ [Subscription] MongoUser update warning:', e.message);
       }
     }
 
-    // Fetch refreshed user record
-    const updatedUser = db.prepare(`
-      SELECT id, name, email, institution, role, grade_or_level, created_at,
-             trial_ends_at, subscription_tier, subscription_status, subscription_expires_at
-      FROM users WHERE id = ?
-    `).get(req.user.id);
+    // Fetch refreshed user record (MongoDB first)
+    let updatedUser = null;
+    if (isMongoConnected()) {
+      try {
+        const doc = await MongoUser.findById(req.user.id).lean();
+        if (doc) {
+          updatedUser = {
+            id: doc._id,
+            name: doc.name,
+            email: doc.email,
+            institution: doc.institution || doc.college || '',
+            role: doc.role || 'Learner',
+            grade_or_level: doc.grade_or_level || doc.branch || 'General',
+            created_at: doc.created_at,
+            trial_ends_at: doc.trial_ends_at,
+            subscription_tier: doc.subscription_tier,
+            subscription_status: doc.subscription_status,
+            subscription_expires_at: doc.subscription_expires_at,
+          };
+        }
+      } catch (e) {}
+    }
+    if (!updatedUser) {
+      updatedUser = db.prepare(`
+        SELECT id, name, email, institution, role, grade_or_level, created_at,
+               trial_ends_at, subscription_tier, subscription_status, subscription_expires_at
+        FROM users WHERE id = ?
+      `).get(req.user.id);
+    }
     const subInfo = getUserSubscriptionInfo(updatedUser);
 
     res.json({
@@ -1494,18 +1598,45 @@ app.get('/api/subscription/stripe/verify-session', requireAuth, async (req, res)
     `).run(targetPlan, expiresAt, req.user.id);
 
     if (isMongoConnected()) {
-      MongoUser.findByIdAndUpdate(req.user.id, {
-        subscription_tier: targetPlan,
-        subscription_status: 'active',
-        subscription_expires_at: expiresAt,
-      }).catch(() => {});
+      try {
+        await MongoUser.findByIdAndUpdate(req.user.id, {
+          subscription_tier: targetPlan,
+          subscription_status: 'active',
+          subscription_expires_at: expiresAt,
+        });
+      } catch (e) {
+        console.warn('⚠️ [Stripe] Mongo update warning:', e.message);
+      }
     }
 
-    const updatedUser = db.prepare(`
-      SELECT id, name, email, institution, role, grade_or_level, created_at,
-             trial_ends_at, subscription_tier, subscription_status, subscription_expires_at
-      FROM users WHERE id = ?
-    `).get(req.user.id);
+    let updatedUser = null;
+    if (isMongoConnected()) {
+      try {
+        const doc = await MongoUser.findById(req.user.id).lean();
+        if (doc) {
+          updatedUser = {
+            id: doc._id,
+            name: doc.name,
+            email: doc.email,
+            institution: doc.institution || doc.college || '',
+            role: doc.role || 'Learner',
+            grade_or_level: doc.grade_or_level || doc.branch || 'General',
+            created_at: doc.created_at,
+            trial_ends_at: doc.trial_ends_at,
+            subscription_tier: doc.subscription_tier,
+            subscription_status: doc.subscription_status,
+            subscription_expires_at: doc.subscription_expires_at,
+          };
+        }
+      } catch (e) {}
+    }
+    if (!updatedUser) {
+      updatedUser = db.prepare(`
+        SELECT id, name, email, institution, role, grade_or_level, created_at,
+               trial_ends_at, subscription_tier, subscription_status, subscription_expires_at
+        FROM users WHERE id = ?
+      `).get(req.user.id);
+    }
     const subInfo = getUserSubscriptionInfo(updatedUser);
 
     res.json({
@@ -1523,7 +1654,7 @@ app.get('/api/subscription/stripe/verify-session', requireAuth, async (req, res)
 });
 
 // Developer helper: toggle trial expiration for quick testing in UI
-app.post('/api/subscription/dev-simulate-expiry', requireAuth, (req, res) => {
+app.post('/api/subscription/dev-simulate-expiry', requireAuth, async (req, res) => {
   try {
     const { expired } = req.body;
     const now = new Date();
@@ -1542,18 +1673,45 @@ app.post('/api/subscription/dev-simulate-expiry', requireAuth, (req, res) => {
     `).run(newTrialEnds, newTier, newStatus, req.user.id);
 
     if (isMongoConnected()) {
-      MongoUser.findByIdAndUpdate(req.user.id, {
-        trial_ends_at: newTrialEnds,
-        subscription_tier: newTier,
-        subscription_status: newStatus,
-      }).catch(() => {});
+      try {
+        await MongoUser.findByIdAndUpdate(req.user.id, {
+          trial_ends_at: newTrialEnds,
+          subscription_tier: newTier,
+          subscription_status: newStatus,
+        });
+      } catch (e) {
+        console.warn('⚠️ [Simulate] Mongo update warning:', e.message);
+      }
     }
 
-    const updatedUser = db.prepare(`
-      SELECT id, name, email, institution, role, grade_or_level, created_at,
-             trial_ends_at, subscription_tier, subscription_status, subscription_expires_at
-      FROM users WHERE id = ?
-    `).get(req.user.id);
+    let updatedUser = null;
+    if (isMongoConnected()) {
+      try {
+        const doc = await MongoUser.findById(req.user.id).lean();
+        if (doc) {
+          updatedUser = {
+            id: doc._id,
+            name: doc.name,
+            email: doc.email,
+            institution: doc.institution || doc.college || '',
+            role: doc.role || 'Learner',
+            grade_or_level: doc.grade_or_level || doc.branch || 'General',
+            created_at: doc.created_at,
+            trial_ends_at: doc.trial_ends_at,
+            subscription_tier: doc.subscription_tier,
+            subscription_status: doc.subscription_status,
+            subscription_expires_at: doc.subscription_expires_at,
+          };
+        }
+      } catch (e) {}
+    }
+    if (!updatedUser) {
+      updatedUser = db.prepare(`
+        SELECT id, name, email, institution, role, grade_or_level, created_at,
+               trial_ends_at, subscription_tier, subscription_status, subscription_expires_at
+        FROM users WHERE id = ?
+      `).get(req.user.id);
+    }
     const subInfo = getUserSubscriptionInfo(updatedUser);
 
     res.json({

@@ -233,9 +233,15 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
           </form>
 
           {/* Privacy Note */}
-          <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800/80 flex items-center justify-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
-            <span>100% Private: Stored locally on your own computer for long-term safe keeping</span>
+          <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800/80 flex flex-col items-center justify-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 text-center">
+            <div className="flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
+              <span className="font-semibold text-slate-700 dark:text-slate-300">Secure Cloud Authentication:</span>
+              <span className="text-emerald-600 dark:text-emerald-400 font-medium">MongoDB Atlas Encrypted</span>
+            </div>
+            <div className="text-[10px] text-slate-400 dark:text-slate-500">
+              3-Month Free Trial included on all accounts • Instant access
+            </div>
           </div>
         </div>
 
