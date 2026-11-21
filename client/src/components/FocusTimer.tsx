@@ -95,17 +95,17 @@ export const FocusTimer: React.FC = () => {
       {/* Navbar trigger pill */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
+        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-semibold transition-all shadow-xs ${
           isRunning
-            ? 'bg-amber-500/15 border-amber-500/40 text-amber-300 shadow-sm shadow-amber-500/20 animate-pulse'
-            : 'bg-slate-800/80 hover:bg-slate-700/80 border-slate-700 text-slate-300 hover:text-white'
+            ? 'bg-amber-500/15 border-amber-500/40 text-amber-600 dark:text-amber-300 shadow-sm shadow-amber-500/20 animate-pulse'
+            : 'bg-white dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-700/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
         }`}
         title="Deep Focus Revision Timer"
       >
-        <Flame className={`w-3.5 h-3.5 ${isRunning ? 'text-amber-400 fill-amber-400' : 'text-slate-400'}`} />
+        <Flame className={`w-3.5 h-3.5 ${isRunning ? 'text-amber-500 fill-amber-500' : 'text-slate-400'}`} />
         <span className="font-mono font-bold tracking-tight">{formattedTime}</span>
         {sprintsCount > 0 && (
-          <span className="ml-0.5 px-1.5 py-0.2 rounded-full bg-slate-900 border border-amber-500/30 text-[10px] text-amber-400 font-bold">
+          <span className="ml-0.5 px-1.5 py-0.2 rounded-full bg-amber-50 dark:bg-slate-900 border border-amber-500/30 text-[10px] text-amber-600 dark:text-amber-400 font-bold">
             {sprintsCount}
           </span>
         )}

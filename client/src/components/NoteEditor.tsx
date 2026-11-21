@@ -266,10 +266,10 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       {/* Editor Header */}
       <div className="flex items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-xl font-extrabold text-white">
+          <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
             {initialNote ? 'Edit Note' : 'Create New Note'}
           </h2>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             Save knowledge from handwritten photos, PDF documents, links, and text
           </p>
         </div>
@@ -277,7 +277,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
         <div className="flex items-center gap-2">
           <button
             onClick={onCancel}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 text-xs font-semibold transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold transition-all shadow-xs"
           >
             <X className="w-4 h-4" />
             <span>Cancel</span>
@@ -285,7 +285,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
 
           <button
             onClick={handleSave}
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-xs font-bold shadow-md shadow-cyan-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white text-xs font-bold shadow-md shadow-sky-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
           >
             <Save className="w-4 h-4" />
             <span>Save Note</span>
@@ -294,10 +294,10 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       </div>
 
       {/* Primary Details Card */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 mb-6 space-y-4">
+      <div className="bg-white dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-6 mb-6 space-y-4 shadow-xs">
         {/* Title */}
         <div>
-          <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
             Note Title *
           </label>
           <input
@@ -305,7 +305,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g. Physics Wave Optics / Cellular Respiration / Dynamic Programming / World War II Notes"
-            className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-base font-semibold focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+            className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-base font-semibold focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
           />
         </div>
 

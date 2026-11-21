@@ -191,7 +191,7 @@ export const NoteDetail: React.FC<NoteDetailProps> = ({
       <div className="flex items-center justify-between gap-4 mb-6">
         <button
           onClick={onBack}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 transition-all text-xs font-semibold"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all text-xs font-semibold shadow-xs"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Notes</span>
@@ -201,32 +201,32 @@ export const NoteDetail: React.FC<NoteDetailProps> = ({
           {/* Pin Button */}
           <button
             onClick={handleTogglePin}
-            className={`p-2 rounded-lg border transition-all ${
+            className={`p-2 rounded-xl border transition-all shadow-xs ${
               note.pinned
-                ? 'bg-amber-500/10 border-amber-500/40 text-amber-400'
-                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-amber-400 hover:bg-slate-800'
+                ? 'bg-amber-500/10 border-amber-500/40 text-amber-500 dark:text-amber-400'
+                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
             title={note.pinned ? 'Pinned to top' : 'Pin note to top'}
           >
-            <Pin className={`w-4 h-4 ${note.pinned ? 'fill-amber-400' : ''}`} />
+            <Pin className={`w-4 h-4 ${note.pinned ? 'fill-amber-500 dark:fill-amber-400' : ''}`} />
           </button>
 
           {/* Star Button */}
           <button
             onClick={(e) => onToggleStar(note.id, e)}
-            className="p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-amber-400 hover:bg-slate-800 transition-all"
+            className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all shadow-xs"
             title={note.starred ? 'Starred' : 'Add to Starred'}
           >
-            <Star className={`w-4 h-4 ${note.starred ? 'text-amber-400 fill-amber-400' : ''}`} />
+            <Star className={`w-4 h-4 ${note.starred ? 'text-amber-500 fill-amber-500' : ''}`} />
           </button>
 
           {/* Share Modal Trigger */}
           <button
             onClick={() => setIsShareModalOpen(true)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all shadow-xs ${
               note.is_public
-                ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300 hover:bg-emerald-900/40'
-                : 'bg-slate-900 border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800'
+                ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-500/40 text-emerald-600 dark:text-emerald-300'
+                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
             title="Share & Export Note"
           >
@@ -237,7 +237,7 @@ export const NoteDetail: React.FC<NoteDetailProps> = ({
           {/* Print / Save to PDF */}
           <button
             onClick={() => window.print()}
-            className="p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 transition-all"
+            className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all shadow-xs"
             title="Print or Save as PDF"
           >
             <Printer className="w-4 h-4" />
@@ -246,7 +246,7 @@ export const NoteDetail: React.FC<NoteDetailProps> = ({
           {/* Edit */}
           <button
             onClick={() => onEdit(note)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 transition-all text-xs font-semibold"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 text-white hover:from-sky-400 hover:to-blue-500 transition-all text-xs font-bold shadow-sm shadow-sky-500/20"
           >
             <Edit3 className="w-3.5 h-3.5" />
             <span>Edit</span>
@@ -259,7 +259,7 @@ export const NoteDetail: React.FC<NoteDetailProps> = ({
                 onDelete(note.id);
               }
             }}
-            className="p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 transition-all"
+            className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all shadow-xs"
             title="Delete Note"
           >
             <Trash2 className="w-4 h-4" />
@@ -268,11 +268,11 @@ export const NoteDetail: React.FC<NoteDetailProps> = ({
       </div>
 
       {/* Note Header Info */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 mb-6">
+      <div className="bg-white dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-6 mb-6 shadow-xs">
         <div className="flex items-center gap-2 flex-wrap mb-3">
           {note.subject_name && (
             <span
-              className="text-xs font-bold px-2.5 py-1 rounded-md border"
+              className="text-xs font-bold px-2.5 py-1 rounded-full border shadow-2xs"
               style={{
                 backgroundColor: `${note.subject_color || '#38bdf8'}15`,
                 borderColor: `${note.subject_color || '#38bdf8'}40`,
@@ -283,22 +283,22 @@ export const NoteDetail: React.FC<NoteDetailProps> = ({
             </span>
           )}
 
-          <span className="text-xs font-medium px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+          <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
             {note.difficulty}
           </span>
 
-          <span className={`text-xs font-medium px-2 py-0.5 rounded border ${getStatusBadge(note.status)}`}>
+          <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border shadow-2xs ${getStatusBadge(note.status)}`}>
             {note.status}
           </span>
         </div>
 
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-white mb-3">
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mb-3">
           {note.title}
         </h1>
 
         {note.summary && (
-          <div className="p-3.5 rounded-xl bg-cyan-950/20 border border-cyan-800/40 text-cyan-200/90 text-sm leading-relaxed mb-4">
-            <span className="font-bold text-cyan-400 mr-2">📌 Key Takeaway:</span>
+          <div className="p-3.5 rounded-xl bg-sky-50 dark:bg-cyan-950/20 border border-sky-200 dark:border-cyan-800/40 text-slate-700 dark:text-cyan-200/90 text-sm leading-relaxed mb-4 shadow-2xs">
+            <span className="font-bold text-sky-600 dark:text-cyan-400 mr-2">📌 Key Takeaway:</span>
             {note.summary}
           </div>
         )}
@@ -309,7 +309,7 @@ export const NoteDetail: React.FC<NoteDetailProps> = ({
             {note.tags.map((tag) => (
               <span
                 key={tag}
-                className="text-xs px-2 py-0.5 rounded bg-slate-800/80 text-slate-300 border border-slate-700"
+                className="text-xs font-medium px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700"
               >
                 #{tag}
               </span>
@@ -319,13 +319,13 @@ export const NoteDetail: React.FC<NoteDetailProps> = ({
       </div>
 
       {/* Tabs Switcher */}
-      <div className="flex items-center gap-2 border-b border-slate-800 mb-6 pb-1 overflow-x-auto no-scrollbar">
+      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 mb-6 pb-1 overflow-x-auto no-scrollbar">
         <button
           onClick={() => setActiveTab('notes')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
             activeTab === 'notes'
-              ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-850'
+              ? 'bg-sky-500/15 text-sky-600 dark:text-cyan-300 border border-sky-500/30 shadow-xs'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
         >
           <BookOpen className="w-4 h-4" />
@@ -334,16 +334,16 @@ export const NoteDetail: React.FC<NoteDetailProps> = ({
 
         <button
           onClick={() => setActiveTab('attachments')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
             activeTab === 'attachments'
-              ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-850'
+              ? 'bg-sky-500/15 text-sky-600 dark:text-cyan-300 border border-sky-500/30 shadow-xs'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
         >
           <Camera className="w-4 h-4" />
           <span>Photos & PDFs</span>
           {note.attachments && note.attachments.length > 0 && (
-            <span className="px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-300 text-[10px]">
+            <span className="px-1.5 py-0.2 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-bold">
               {note.attachments.length}
             </span>
           )}
@@ -403,8 +403,8 @@ export const NoteDetail: React.FC<NoteDetailProps> = ({
 
       {/* Tab 1: Notes & Markdown */}
       {activeTab === 'notes' && (
-        <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 sm:p-8">
-          <div className="prose prose-invert max-w-none prose-headings:text-slate-100 prose-headings:font-bold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-p:text-slate-300 prose-p:leading-relaxed prose-li:text-slate-300 prose-code:text-cyan-300 prose-code:bg-slate-950 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-pre:bg-slate-950 prose-pre:border prose-pre:border-slate-800">
+        <div className="bg-white dark:bg-slate-900/60 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xs">
+          <div className="prose dark:prose-invert max-w-none prose-headings:text-slate-900 dark:prose-headings:text-slate-100 prose-headings:font-bold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-p:text-slate-700 dark:prose-p:text-slate-300 prose-p:leading-relaxed prose-li:text-slate-700 dark:prose-li:text-slate-300 prose-code:text-sky-600 dark:prose-code:text-cyan-300 prose-code:bg-slate-100 dark:prose-code:bg-slate-950 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-pre:bg-slate-50 dark:prose-pre:bg-slate-950 prose-pre:border prose-pre:border-slate-200 dark:prose-pre:border-slate-800">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
               {note.content || '*No written notes provided.*'}
             </ReactMarkdown>

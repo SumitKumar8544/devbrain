@@ -24,12 +24,14 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     try {
       const root = document.documentElement;
-      if (theme === 'light') {
-        root.classList.add('light-mode');
-        root.setAttribute('data-theme', 'light');
-      } else {
-        root.classList.remove('light-mode');
+      if (theme === 'dark') {
+        root.classList.add('dark');
+        root.classList.remove('light');
         root.setAttribute('data-theme', 'dark');
+      } else {
+        root.classList.remove('dark');
+        root.classList.add('light');
+        root.setAttribute('data-theme', 'light');
       }
       localStorage.setItem('devbrain_theme', theme);
     } catch (e) {

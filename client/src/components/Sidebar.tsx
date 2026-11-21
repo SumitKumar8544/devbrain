@@ -50,7 +50,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   return (
-    <aside className="w-64 bg-slate-900/60 border-r border-slate-800/80 p-4 flex flex-col h-[calc(100vh-61px)] overflow-y-auto">
+    <aside className="w-64 bg-white/70 dark:bg-slate-900/60 border-r border-slate-200/80 dark:border-slate-800/80 p-4 flex flex-col h-[calc(100vh-61px)] overflow-y-auto transition-colors">
       {/* Quick Filters */}
       <div className="mb-6">
         <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2 px-2">
