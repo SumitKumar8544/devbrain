@@ -1,5 +1,6 @@
 import React from 'react';
 import type { User } from '../types';
+import { FocusTimer } from './FocusTimer';
 import {
   Brain,
   Search,
@@ -10,7 +11,8 @@ import {
   LogOut,
   X,
   Camera,
-  FileText
+  FileText,
+  Command
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -25,6 +27,7 @@ interface NavbarProps {
   onToggleStats: () => void;
   showStats: boolean;
   totalNotes: number;
+  onOpenCommandPalette?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -38,6 +41,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenSettings,
   onToggleStats,
   showStats,
+  onOpenCommandPalette,
 }) => {
   return (
     <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 lg:px-6 py-3">
@@ -63,28 +67,42 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
 
-        {/* Global Search Bar */}
+        {/* Global Search Bar with Command Palette Trigger */}
         <div className="flex-1 max-w-md relative hidden md:block">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search all notes, photos, PDFs, links, topics..."
-            className="w-full pl-9 pr-8 py-1.5 bg-slate-950/70 text-slate-200 text-sm rounded-lg border border-slate-800 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all placeholder:text-slate-500"
+            placeholder="Search notes, tags, PDFs, code..."
+            className="w-full pl-9 pr-16 py-1.5 bg-slate-950/70 text-slate-200 text-sm rounded-lg border border-slate-800 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all placeholder:text-slate-500"
           />
-          {searchQuery && (
-            <button
-              onClick={() => onSearchChange('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+            {searchQuery && (
+              <button
+                onClick={() => onSearchChange('')}
+                className="text-slate-400 hover:text-slate-200 p-0.5"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+            {onOpenCommandPalette && (
+              <button
+                onClick={onOpenCommandPalette}
+                className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] text-slate-400 hover:text-cyan-300 font-mono transition-colors"
+                title="Open Command Palette (Ctrl+K)"
+              >
+                <span>⌘K</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Actions Group */}
         <div className="flex items-center gap-2">
+          {/* Deep Focus Revision Sprint Timer */}
+          <FocusTimer />
+
           {/* Stats Toggle */}
           <button
             onClick={onToggleStats}

@@ -3,6 +3,7 @@ import { Note, ChatMessage } from '../types';
 import { api } from '../services/api';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useToast } from '../context/ToastContext';
 import {
   Sparkles,
   Send,
@@ -37,6 +38,7 @@ export const AICopilot: React.FC<AICopilotProps> = ({
   initialPromptAction,
   onClearInitialAction,
 }) => {
+  const { success, info } = useToast();
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'welcome',
@@ -151,6 +153,7 @@ Try one of the quick actions below, or ask your own question!`,
   const handleCopyMessage = (text: string, idx: number) => {
     navigator.clipboard.writeText(text);
     setCopiedIndex(idx);
+    success('Copilot response copied to clipboard!');
     setTimeout(() => setCopiedIndex(null), 2000);
   };
 
@@ -163,6 +166,7 @@ Try one of the quick actions below, or ask your own question!`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       },
     ]);
+    info('Conversation reset.');
   };
 
   if (!isOpen) return null;

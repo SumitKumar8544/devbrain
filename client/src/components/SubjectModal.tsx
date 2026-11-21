@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { Subject } from '../types';
 import { X, FolderPlus, Check } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
 
 interface SubjectModalProps {
   isOpen: boolean;
@@ -34,6 +35,7 @@ export const SubjectModal: React.FC<SubjectModalProps> = ({
   onClose,
   onSave,
 }) => {
+  const { warning } = useToast();
   const [name, setName] = useState('');
   const [category, setCategory] = useState('School & Academics');
   const [color, setColor] = useState('#38bdf8');
@@ -44,7 +46,7 @@ export const SubjectModal: React.FC<SubjectModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      alert('Notebook name is required');
+      warning('Notebook name is required');
       return;
     }
     onSave({

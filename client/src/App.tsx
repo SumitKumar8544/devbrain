@@ -12,6 +12,9 @@ import { SettingsModal } from './components/SettingsModal';
 import { SubjectModal } from './components/SubjectModal';
 import { DashboardStats } from './components/DashboardStats';
 import { PublicNoteView } from './components/PublicNoteView';
+import { CommandPalette } from './components/CommandPalette';
+import { WhiteboardCanvas } from './components/WhiteboardCanvas';
+import { useToast } from './context/ToastContext';
 import {
   FolderPlus,
   Plus,
@@ -26,6 +29,7 @@ import {
 } from 'lucide-react';
 
 export function App() {
+  const { success, error: toastError } = useToast();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [authChecking, setAuthChecking] = useState(true);
 
@@ -61,7 +65,44 @@ export function App() {
   const [showStats, setShowStats] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSubjectModalOpen, setIsSubjectModalOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isCanvasOpen, setIsCanvasOpen] = useState(false);
   const [copilotAction, setCopilotAction] = useState<{ note: Note; action: string } | null>(null);
+
+  // Global Keyboard Shortcuts (Ctrl+K, Ctrl+N, Ctrl+J)
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Don't intercept if user is typing in an input or textarea (except for Command Palette)
+      const target = e.target as HTMLElement;
+      const isInput = target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA';
+
+      // Ctrl+K / Cmd+K: Fast Command Palette (always allowed)
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen((prev) => !prev);
+        return;
+      }
+
+      if (isInput) return;
+
+      // Ctrl+N / Cmd+N: New Study Note
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        setActiveNote(null);
+        setIsEditing(false);
+        setIsCreating(true);
+      }
+
+      // Ctrl+J / Cmd+J: Toggle AI Study Copilot
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'j') {
+        e.preventDefault();
+        setIsCopilotOpen((prev) => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
 
   // Check existing session on load
   useEffect(() => {
@@ -159,14 +200,16 @@ export function App() {
         const created = await api.createNote(data);
         setActiveNote(created);
         setIsCreating(false);
+        success('New study note created & saved!');
       } else if (activeNote) {
         const updated = await api.updateNote(activeNote.id, data);
         setActiveNote(updated);
         setIsEditing(false);
+        success('Study note updated!');
       }
       loadData();
     } catch (err: any) {
-      alert(`Error saving note: ${err.message}`);
+      toastError(`Error saving note: ${err.message}`);
     }
   };
 
@@ -177,24 +220,25 @@ export function App() {
       setIsEditing(false);
       setIsCreating(false);
       loadData();
+      success('Note moved to trash / deleted.');
     } catch (err: any) {
-      alert(`Error deleting note: ${err.message}`);
+      toastError(`Error deleting note: ${err.message}`);
     }
   };
 
   const handleInsertToNote = async (contentToAppend: string) => {
     if (!activeNote) return;
     try {
-      const updatedContent = `${activeNote.content}\n\n---\n### 🤖 AI Study Notes & Insights:\n${contentToAppend}`;
+      const updatedContent = `${activeNote.content}\n\n---\n### 🧠 Copilot Revision Notes & Key Takeaways:\n${contentToAppend}`;
       const updated = await api.updateNote(activeNote.id, {
         ...activeNote,
         content: updatedContent,
       });
       setActiveNote(updated);
       loadData();
-      alert('✅ Copilot insight successfully appended to your note!');
+      success('Copilot explanation inserted directly into your note!');
     } catch (err: any) {
-      alert(`Failed to append to note: ${err.message}`);
+      toastError(`Failed to append to note: ${err.message}`);
     }
   };
 
@@ -217,8 +261,9 @@ export function App() {
       const subs = await api.getSubjects();
       setSubjects(subs);
       api.getStats().then(setStats).catch(console.error);
+      success('Notebook category created!');
     } catch (err: any) {
-      alert(`Failed to create category: ${err.message}`);
+      toastError(`Failed to create category: ${err.message}`);
     }
   };
 
@@ -229,8 +274,9 @@ export function App() {
         setActiveSubjectId(null);
       }
       loadData();
+      success('Notebook category deleted.');
     } catch (err: any) {
-      alert(`Failed to delete notebook category: ${err.message}`);
+      toastError(`Failed to delete notebook category: ${err.message}`);
     }
   };
 
@@ -292,6 +338,7 @@ export function App() {
         onToggleStats={() => setShowStats(!showStats)}
         showStats={showStats}
         totalNotes={notes.length}
+        onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
       />
 
       <div className="flex-1 flex overflow-hidden">
@@ -534,6 +581,60 @@ export function App() {
         isOpen={isSubjectModalOpen}
         onClose={() => setIsSubjectModalOpen(false)}
         onSave={handleCreateSubject}
+      />
+
+      {/* Global Command Palette (Ctrl+K) */}
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        notes={notes}
+        subjects={subjects}
+        onSelectNote={handleSelectNote}
+        onSelectSubject={(id) => {
+          setActiveSubjectId(id);
+          setActiveNote(null);
+        }}
+        onCreateNote={handleStartCreate}
+        onOpenCopilot={() => setIsCopilotOpen(true)}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenCanvas={() => setIsCanvasOpen(true)}
+        onExportVault={() => {
+          window.open(api.getExportUrl(), '_blank');
+          success('Knowledge Vault JSON backup downloaded!');
+        }}
+      />
+
+      {/* Quick Whiteboard & Diagram Canvas */}
+      <WhiteboardCanvas
+        isOpen={isCanvasOpen}
+        onClose={() => setIsCanvasOpen(false)}
+        onSaveDrawing={async (file) => {
+          try {
+            const att = await api.uploadFile(file);
+            if (activeNote) {
+              const updated = await api.updateNote(activeNote.id, {
+                ...activeNote,
+                attachments: [...(activeNote.attachments || []), att],
+              });
+              setActiveNote(updated);
+              loadData();
+              success('Handwritten sketch attached to this study note!');
+            } else {
+              // Create a quick scratch note with this diagram
+              const created = await api.createNote({
+                title: `Sketch Diagram — ${new Date().toLocaleDateString()}`,
+                content: 'Hand-drawn architecture/algorithm whiteboard diagram.',
+                attachments: [att],
+                subject_id: activeSubjectId || subjects[0]?.id || null,
+              });
+              setActiveNote(created);
+              loadData();
+              success('New note created with your handwritten sketch!');
+            }
+          } catch (e: any) {
+            toastError('Failed to save sketch: ' + e.message);
+          }
+        }}
       />
     </div>
   );

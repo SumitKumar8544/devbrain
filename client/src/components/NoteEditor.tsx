@@ -3,6 +3,8 @@ import type { Note, Subject, Difficulty, NoteStatus, CodeSnippet, ResourceLink, 
 import { api } from '../services/api';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useToast } from '../context/ToastContext';
+import { WhiteboardCanvas } from './WhiteboardCanvas';
 import {
   Save,
   X,
@@ -21,7 +23,8 @@ import {
   ExternalLink,
   Files,
   Mic,
-  MicOff
+  MicOff,
+  PenTool
 } from 'lucide-react';
 
 interface NoteEditorProps {
@@ -37,6 +40,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   onSave,
   onCancel,
 }) => {
+  const { success, warning, error: toastError, info } = useToast();
   const [title, setTitle] = useState(initialNote?.title || '');
   const [subjectId, setSubjectId] = useState(initialNote?.subject_id || (subjects[0]?.id || ''));
   const [difficulty, setDifficulty] = useState<Difficulty>(initialNote?.difficulty || 'Intermediate');
@@ -56,6 +60,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [editorTab, setEditorTab] = useState<'write' | 'preview'>('write');
   const [activeSection, setActiveSection] = useState<'content' | 'attachments' | 'links' | 'code' | 'flashcards'>('content');
+  const [isCanvasOpen, setIsCanvasOpen] = useState(false);
 
   // Speech-to-Text Voice Dictation State
   const [isListening, setIsListening] = useState(false);
@@ -86,12 +91,26 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
     try {
       const uploadedList = await api.uploadFiles(files);
       setAttachments((prev) => [...prev, ...uploadedList]);
+      success(`Uploaded ${uploadedList.length} file${uploadedList.length > 1 ? 's' : ''}!`);
     } catch (err: any) {
-      alert(`Upload error: ${err.message}`);
+      toastError(`Upload error: ${err.message}`);
     } finally {
       setUploading(false);
       setUploadCount(0);
       if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleSaveCanvasDrawing = async (file: File) => {
+    try {
+      setUploading(true);
+      const uploaded = await api.uploadFile(file);
+      setAttachments((prev) => [...prev, uploaded]);
+      success('Diagram attached to note successfully!');
+    } catch (err: any) {
+      toastError(`Failed to attach diagram: ${err.message}`);
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -157,7 +176,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   const toggleListening = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert('Speech recognition is not supported in this browser. Please try Google Chrome or Microsoft Edge.');
+      info('Speech recognition requires Google Chrome or Microsoft Edge browser.');
       return;
     }
 
@@ -220,7 +239,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
 
   const handleSave = () => {
     if (!title.trim()) {
-      alert('Please enter a note title');
+      warning('Please enter a note title before saving.');
       return;
     }
 
@@ -620,7 +639,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
                 Drag & drop or select multiple files at once. Supports <strong>photos (JPG, PNG), PDF documents, Word docs, worksheets, whiteboard photos, and study sheets</strong>.
               </p>
 
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center justify-center gap-3">
                 <button
                   type="button"
                   disabled={uploading}
@@ -629,8 +648,18 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
                 >
                   <Plus className="w-4 h-4" />
                   <span>
-                    {uploading ? `Uploading ${uploadCount} files...` : 'Browse & Upload Multiple Files'}
+                    {uploading ? `Uploading ${uploadCount} files...` : 'Browse & Upload Files'}
                   </span>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={uploading}
+                  onClick={() => setIsCanvasOpen(true)}
+                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-emerald-500/50 text-xs font-semibold shadow-md transition-all flex items-center gap-2"
+                >
+                  <PenTool className="w-4 h-4 text-emerald-400" />
+                  <span>Draw on Whiteboard</span>
                 </button>
               </div>
 
@@ -961,6 +990,13 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
           )}
         </div>
       )}
+
+      {/* Interactive Whiteboard Canvas Modal */}
+      <WhiteboardCanvas
+        isOpen={isCanvasOpen}
+        onClose={() => setIsCanvasOpen(false)}
+        onSaveDrawing={handleSaveCanvasDrawing}
+      />
     </div>
   );
 };

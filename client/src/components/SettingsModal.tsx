@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { User } from '../types';
 import { api } from '../services/api';
+import { useToast } from '../context/ToastContext';
 import {
   X,
   User as UserIcon,
@@ -35,6 +36,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   user,
   onUserUpdated,
 }) => {
+  const { error: toastError, success: toastSuccess } = useToast();
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'cloud'>('profile');
 
   // Profile Edit State
@@ -149,11 +151,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           subjects: json.subjects,
           notes: json.notes,
         });
-        setImportStatus(`Successfully restored ${res.importedNotes} notes and ${res.importedSubjects} categories!`);
+        toastSuccess(`Successfully restored ${res.importedNotes} notes and ${res.importedSubjects} categories!`);
         onDataImported();
         setTimeout(() => setImportStatus(null), 4000);
       } catch (err: any) {
-        alert(`Error importing backup: ${err.message}`);
+        toastError(`Error importing backup: ${err.message}`);
       } finally {
         setImporting(false);
       }

@@ -31,6 +31,8 @@ import {
   Printer
 } from 'lucide-react';
 import { ShareModal } from './ShareModal';
+import { PDFModal } from './PDFModal';
+import { useToast } from '../context/ToastContext';
 
 interface NoteDetailProps {
   note: Note;
@@ -51,12 +53,14 @@ export const NoteDetail: React.FC<NoteDetailProps> = ({
   onAskAIAction,
   onNoteUpdated,
 }) => {
+  const { success, error: toastError } = useToast();
   const [note, setNote] = useState<Note>(initialNote);
   const [activeTab, setActiveTab] = useState<'notes' | 'attachments' | 'links' | 'code' | 'flashcards'>('notes');
   const [copiedSnippetIndex, setCopiedSnippetIndex] = useState<number | null>(null);
   const [flippedCardIndex, setFlippedCardIndex] = useState<number | null>(null);
   const [activeCodeIndex, setActiveCodeIndex] = useState<number>(0);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  const [selectedPdf, setSelectedPdf] = useState<{ url: string; name: string; size?: number } | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   // Direct multi-file upload state
@@ -72,6 +76,7 @@ export const NoteDetail: React.FC<NoteDetailProps> = ({
   const handleCopyCode = (code: string, index: number) => {
     navigator.clipboard.writeText(code);
     setCopiedSnippetIndex(index);
+    success('Code snippet copied to clipboard!');
     setTimeout(() => setCopiedSnippetIndex(null), 2000);
   };
 
@@ -100,9 +105,10 @@ export const NoteDetail: React.FC<NoteDetailProps> = ({
 
       setNote(updated);
       if (onNoteUpdated) onNoteUpdated(updated);
+      success(`Uploaded ${uploadedAttachments.length} file${uploadedAttachments.length > 1 ? 's' : ''}!`);
     } catch (err: any) {
       console.error('File upload error:', err);
-      alert(`Failed to upload files: ${err.message || 'Please check server connection'}`);
+      toastError(`Failed to upload files: ${err.message || 'Please check server connection'}`);
     } finally {
       setUploading(false);
       setUploadCount(0);
@@ -126,8 +132,9 @@ export const NoteDetail: React.FC<NoteDetailProps> = ({
       });
       setNote(updated);
       if (onNoteUpdated) onNoteUpdated(updated);
+      success('File removed from note.');
     } catch (err: any) {
-      alert(`Failed to delete file: ${err.message}`);
+      toastError(`Failed to delete file: ${err.message}`);
     }
   };
 
@@ -137,8 +144,9 @@ export const NoteDetail: React.FC<NoteDetailProps> = ({
       const updated = { ...note, pinned: res.pinned };
       setNote(updated);
       if (onNoteUpdated) onNoteUpdated(updated);
+      success(res.pinned ? 'Note pinned to top of vault' : 'Note unpinned');
     } catch (err: any) {
-      alert(`Failed to pin note: ${err.message}`);
+      toastError(`Failed to pin note: ${err.message}`);
     }
   };
 
@@ -567,8 +575,15 @@ export const NoteDetail: React.FC<NoteDetailProps> = ({
                           key={att.id || idx}
                           className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-cyan-500/40 transition-all flex items-center justify-between gap-3 group"
                         >
-                          <div className="flex items-center gap-3 truncate">
-                            <div className="p-2.5 rounded-lg bg-slate-800 border border-slate-700/60 flex-shrink-0">
+                          <div
+                            onClick={() => {
+                              if (att.type === 'pdf') {
+                                setSelectedPdf({ url: att.url, name: att.name, size: att.size });
+                              }
+                            }}
+                            className={`flex items-center gap-3 truncate ${att.type === 'pdf' ? 'cursor-pointer' : ''}`}
+                          >
+                            <div className="p-2.5 rounded-lg bg-slate-800 border border-slate-700/60 flex-shrink-0 group-hover:bg-slate-700 transition-colors">
                               {getDocIcon(att.name, att.mimeType)}
                             </div>
                             <div className="truncate">
@@ -576,22 +591,35 @@ export const NoteDetail: React.FC<NoteDetailProps> = ({
                                 {att.name}
                               </p>
                               <div className="flex items-center gap-2 text-[10px] text-slate-400">
-                                <span>{att.type === 'pdf' ? 'PDF Document' : 'Document File'}</span>
+                                <span className={att.type === 'pdf' ? 'text-cyan-400 font-semibold' : ''}>
+                                  {att.type === 'pdf' ? '📄 Click to View PDF' : 'Document File'}
+                                </span>
                                 {att.size && <span>• {formatFileSize(att.size)}</span>}
                               </div>
                             </div>
                           </div>
 
                           <div className="flex items-center gap-1 flex-shrink-0">
-                            <a
-                              href={att.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-cyan-300 hover:bg-slate-700 transition-all"
-                              title="Open File"
-                            >
-                              <ExternalLink className="w-3.5 h-3.5" />
-                            </a>
+                            {att.type === 'pdf' ? (
+                              <button
+                                type="button"
+                                onClick={() => setSelectedPdf({ url: att.url, name: att.name, size: att.size })}
+                                className="p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-cyan-300 hover:bg-slate-700 transition-all"
+                                title="Read PDF In-App"
+                              >
+                                <Maximize2 className="w-3.5 h-3.5" />
+                              </button>
+                            ) : (
+                              <a
+                                href={att.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-cyan-300 hover:bg-slate-700 transition-all"
+                                title="Open File"
+                              >
+                                <ExternalLink className="w-3.5 h-3.5" />
+                              </a>
+                            )}
                             <a
                               href={att.url}
                               download={att.name}
@@ -841,6 +869,15 @@ export const NoteDetail: React.FC<NoteDetailProps> = ({
           setNote(updated);
           if (onNoteUpdated) onNoteUpdated(updated);
         }}
+      />
+
+      {/* In-App Inline PDF Viewer Modal */}
+      <PDFModal
+        isOpen={!!selectedPdf}
+        onClose={() => setSelectedPdf(null)}
+        pdfUrl={selectedPdf?.url || ''}
+        pdfName={selectedPdf?.name || ''}
+        pdfSize={selectedPdf?.size}
       />
     </div>
   );

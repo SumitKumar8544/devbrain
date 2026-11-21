@@ -281,6 +281,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
       )}
+
+      {/* Quick Keyboard Shortcuts Footer */}
+      <div className="mt-auto pt-4 border-t border-slate-800/80">
+        <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
+          <div className="flex items-center justify-between text-[11px] text-slate-400 mb-1.5 font-medium">
+            <span>Quick Shortcuts</span>
+            <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-[10px] font-mono text-cyan-400">⌘K</kbd>
+          </div>
+          <div className="space-y-1.5 text-[11px] text-slate-400">
+            <div className="flex items-center justify-between">
+              <span>Fast Navigator</span>
+              <span className="font-mono text-slate-300">Ctrl + K</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>New Study Note</span>
+              <span className="font-mono text-slate-300">Ctrl + N</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>AI Study Copilot</span>
+              <span className="font-mono text-slate-300">Ctrl + J</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </aside>
   );
 };

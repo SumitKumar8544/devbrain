@@ -20,6 +20,20 @@ interface NoteCardProps {
   onQuickAI: (note: Note, e: React.MouseEvent) => void;
 }
 
+const formatRelativeTime = (dateStr?: string) => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return '';
+  const now = new Date();
+  const diffSec = Math.floor((now.getTime() - date.getTime()) / 1000);
+  if (diffSec < 60) return 'Just now';
+  if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
+  if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;
+  if (diffSec < 172800) return 'Yesterday';
+  if (diffSec < 604800) return `${Math.floor(diffSec / 86400)}d ago`;
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+};
+
 export const NoteCard: React.FC<NoteCardProps> = ({
   note,
   onSelect,
@@ -179,7 +193,13 @@ export const NoteCard: React.FC<NoteCardProps> = ({
           )}
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
+          {formatRelativeTime(note.updated_at || note.created_at) && (
+            <span className="text-[10px] text-slate-500 font-mono tracking-tight">
+              {formatRelativeTime(note.updated_at || note.created_at)}
+            </span>
+          )}
+
           <button
             onClick={(e) => onQuickAI(note, e)}
             title="Ask AI to explain this note"

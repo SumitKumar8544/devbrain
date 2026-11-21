@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { Note } from '../types';
 import { api } from '../services/api';
+import { useToast } from '../context/ToastContext';
 import {
   X,
   Share2,
@@ -27,6 +28,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
   note,
   onNoteUpdated,
 }) => {
+  const { success, error: toastError } = useToast();
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedMarkdown, setCopiedMarkdown] = useState(false);
   const [toggling, setToggling] = useState(false);
@@ -47,8 +49,9 @@ export const ShareModal: React.FC<ShareModalProps> = ({
         share_id: res.share_id,
       };
       onNoteUpdated(updatedNote);
+      success(res.is_public ? 'Public read-only share link activated!' : 'Note set to private.');
     } catch (err: any) {
-      alert(`Failed to update sharing: ${err.message}`);
+      toastError(`Failed to update sharing: ${err.message}`);
     } finally {
       setToggling(false);
     }
@@ -58,6 +61,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
     if (!shareUrl) return;
     navigator.clipboard.writeText(shareUrl);
     setCopiedLink(true);
+    success('Public share link copied to clipboard!');
     setTimeout(() => setCopiedLink(false), 2500);
   };
 
