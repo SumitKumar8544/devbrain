@@ -1,6 +1,7 @@
 import React from 'react';
 import type { User } from '../types';
 import { FocusTimer } from './FocusTimer';
+import { useTheme } from '../context/ThemeContext';
 import {
   Brain,
   Search,
@@ -12,7 +13,9 @@ import {
   X,
   Camera,
   FileText,
-  Command
+  Command,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -43,6 +46,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   showStats,
   onOpenCommandPalette,
 }) => {
+  const { theme, toggleTheme } = useTheme();
+
   return (
     <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 lg:px-6 py-3">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
@@ -136,6 +141,19 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">New Note</span>
+          </button>
+
+          {/* Theme Switch: Dark / Bright (Light) Mode */}
+          <button
+            onClick={toggleTheme}
+            title={theme === 'dark' ? 'Switch to Bright Mode' : 'Switch to Dark Mode'}
+            className="p-2 rounded-lg bg-slate-950/60 border border-slate-800 text-slate-400 hover:text-amber-400 hover:border-slate-700 transition-all flex items-center justify-center"
+          >
+            {theme === 'dark' ? (
+              <Sun className="w-4 h-4 text-amber-400 hover:scale-110 transition-transform" />
+            ) : (
+              <Moon className="w-4 h-4 text-indigo-500 hover:scale-110 transition-transform" />
+            )}
           </button>
 
           {/* Account & Data Preferences */}

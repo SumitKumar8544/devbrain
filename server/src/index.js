@@ -1,5 +1,7 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -18,6 +20,54 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// ==========================================
+// 1. SECURITY HEADERS (HELMET)
+// ==========================================
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' }, // Allows cross-origin assets (uploads, photos, PDFs)
+    crossOriginEmbedderPolicy: false,
+    contentSecurityPolicy: false, // Managed per SPA host to prevent client script collision
+    xContentTypeOptions: true,
+    xFrameOptions: { action: 'sameorigin' },
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  })
+);
+
+// ==========================================
+// 2. RATE LIMITING PROTECTION
+// ==========================================
+// General API Rate Limiter (prevents DDoS & scraping)
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 400, // 400 requests per IP per 15 min
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests from this IP. Please try again after a few minutes.' },
+});
+app.use('/api', apiLimiter);
+
+// Sensitive Auth Rate Limiter (protects against credential brute-forcing)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20, // 20 attempts per IP per 15 min
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many authentication attempts. Please wait 15 minutes before trying again.' },
+});
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+
+// AI Limiter (protects Gemini quota & prevents rapid spamming)
+const aiLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 60, // 60 queries per 10 min
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'AI rate limit exceeded. Please wait a few moments before requesting AI assistance again.' },
+});
+app.use('/api/ai', aiLimiter);
 
 // Flexible CORS for standalone frontend (Vercel, Netlify, custom domain, or localhost)
 const allowedOrigins = process.env.CLIENT_URL
@@ -51,15 +101,28 @@ app.use('/uploads', express.static(uploadsDir));
 initDB();
 initMongo();
 
-// Multer Storage Configuration for Photos and Documents
+// ==========================================
+// 3. SECURE FILE UPLOAD CONFIGURATION
+// ==========================================
+const BLOCKED_EXTENSIONS = new Set([
+  '.exe', '.bat', '.cmd', '.sh', '.php', '.phtml', '.js', '.mjs',
+  '.html', '.htm', '.vbs', '.py', '.dll', '.com', '.scr', '.msi', '.jar', '.apk'
+]);
+
+const ALLOWED_EXTENSIONS = new Set([
+  '.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg', '.bmp',
+  '.pdf', '.doc', '.docx', '.txt', '.md', '.json', '.csv', '.zip'
+]);
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadsDir);
   },
   filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const safeName = file.originalname.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 30);
-    const uniqueName = `${Date.now()}-${crypto.randomBytes(4).toString('hex')}-${safeName}${ext}`;
+    const ext = path.extname(file.originalname).toLowerCase();
+    // Sanitize filename to prevent directory traversal or script injection in paths
+    const safeBase = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 30);
+    const uniqueName = `${Date.now()}-${crypto.randomBytes(4).toString('hex')}-${safeBase}${ext}`;
     cb(null, uniqueName);
   },
 });
@@ -67,6 +130,16 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage,
   limits: { fileSize: 25 * 1024 * 1024 }, // 25MB limit for high-res photos / PDFs
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (BLOCKED_EXTENSIONS.has(ext)) {
+      return cb(new Error(`Upload blocked: Executable and script files (${ext}) are prohibited for security.`));
+    }
+    if (!ALLOWED_EXTENSIONS.has(ext) && !file.mimetype.startsWith('image/') && !file.mimetype.startsWith('text/') && file.mimetype !== 'application/pdf') {
+      return cb(new Error(`Unsupported file type (${ext}). Allowed formats: images, PDFs, documents, text files, and archives.`));
+    }
+    cb(null, true);
+  },
 });
 
 // Password hashing helper
@@ -195,7 +268,20 @@ app.post('/api/auth/register', async (req, res) => {
       return res.status(400).json({ error: 'Name, email, and password are required.' });
     }
 
+    // Type checking & NoSQL injection mitigation
+    if (typeof name !== 'string' || typeof email !== 'string' || typeof password !== 'string') {
+      return res.status(400).json({ error: 'Invalid input format.' });
+    }
+
     const cleanEmail = email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      return res.status(400).json({ error: 'Please enter a valid email address.' });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters long.' });
+    }
     
     // Check in MongoDB Atlas or SQLite
     let existing = null;
@@ -221,12 +307,12 @@ app.post('/api/auth/register', async (req, res) => {
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `).run(
       userId,
-      name.trim(),
+      name.trim().slice(0, 80),
       cleanEmail,
       passwordHash,
-      institution ? institution.trim() : '',
-      role ? role.trim() : 'Learner',
-      grade_or_level ? grade_or_level.trim() : 'General'
+      institution ? String(institution).trim().slice(0, 100) : '',
+      role ? String(role).trim().slice(0, 50) : 'Learner',
+      grade_or_level ? String(grade_or_level).trim().slice(0, 50) : 'General'
     );
 
     // Save to MongoDB Atlas
@@ -234,12 +320,12 @@ app.post('/api/auth/register', async (req, res) => {
       try {
         await MongoUser.create({
           _id: userId,
-          name: name.trim(),
+          name: name.trim().slice(0, 80),
           email: cleanEmail,
           password: passwordHash,
-          institution: institution ? institution.trim() : '',
-          role: role ? role.trim() : 'Learner',
-          grade_or_level: grade_or_level ? grade_or_level.trim() : 'General',
+          institution: institution ? String(institution).trim().slice(0, 100) : '',
+          role: role ? String(role).trim().slice(0, 50) : 'Learner',
+          grade_or_level: grade_or_level ? String(grade_or_level).trim().slice(0, 50) : 'General',
         });
       } catch (mongoErr) {
         console.warn('[Auth] MongoUser create warning:', mongoErr.message);
@@ -248,11 +334,11 @@ app.post('/api/auth/register', async (req, res) => {
 
     const user = {
       id: userId,
-      name: name.trim(),
+      name: name.trim().slice(0, 80),
       email: cleanEmail,
-      institution: institution ? institution.trim() : '',
-      role: role ? role.trim() : 'Learner',
-      grade_or_level: grade_or_level ? grade_or_level.trim() : 'General',
+      institution: institution ? String(institution).trim().slice(0, 100) : '',
+      role: role ? String(role).trim().slice(0, 50) : 'Learner',
+      grade_or_level: grade_or_level ? String(grade_or_level).trim().slice(0, 50) : 'General',
       created_at: new Date().toISOString()
     };
 
@@ -267,6 +353,11 @@ app.post('/api/auth/login', async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required.' });
+    }
+
+    // Type checking to prevent NoSQL operator injection
+    if (typeof email !== 'string' || typeof password !== 'string') {
+      return res.status(400).json({ error: 'Invalid input format.' });
     }
 
     const cleanEmail = email.trim().toLowerCase();
@@ -1031,6 +1122,25 @@ if (fs.existsSync(clientDist)) {
     });
   });
 }
+
+// ==========================================
+// 4. GLOBAL SECURITY & ERROR HANDLER
+// ==========================================
+app.use((err, req, res, next) => {
+  console.error('[DevBrain Security/Error Handler]:', err.message);
+  
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ error: 'File size exceeds maximum allowed limit (25MB).' });
+    }
+    return res.status(400).json({ error: `File upload error: ${err.message}` });
+  }
+
+  const statusCode = err.status || 500;
+  res.status(statusCode).json({
+    error: err.message || 'An unexpected error occurred. Please try again.'
+  });
+});
 
 const server = app.listen(PORT, () => {
   console.log(`🧠 DevBrain Universal Server running on http://localhost:${PORT}`);

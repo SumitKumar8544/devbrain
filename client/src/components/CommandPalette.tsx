@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { Note, Subject } from '../types';
+import { useTheme } from '../context/ThemeContext';
 import {
   Search,
   BookOpen,
@@ -11,7 +12,9 @@ import {
   PenTool,
   Star,
   Flame,
-  ArrowRight
+  ArrowRight,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 interface CommandPaletteProps {
@@ -41,6 +44,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   onOpenCanvas,
   onExportVault,
 }) => {
+  const { theme, toggleTheme } = useTheme();
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -118,6 +122,17 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       action: () => {
         onClose();
         onExportVault();
+      },
+    },
+    {
+      id: 'toggle_theme',
+      title: theme === 'dark' ? 'Switch to Bright Mode (Light Theme)' : 'Switch to Dark Mode (Dark Theme)',
+      category: 'Preferences',
+      icon: theme === 'dark' ? Sun : Moon,
+      color: theme === 'dark' ? 'text-amber-400' : 'text-indigo-400',
+      action: () => {
+        onClose();
+        toggleTheme();
       },
     },
     {

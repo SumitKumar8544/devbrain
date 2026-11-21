@@ -19,6 +19,7 @@
     color: #e2e8f0;
     min-height: 100vh;
     overflow-x: hidden;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
   /* Custom scrollbar */
@@ -38,7 +39,144 @@
   }
 }
 
+/* ========================================================
+   BRIGHT / LIGHT MODE SYSTEM
+   ======================================================== */
+html.light-mode body {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+html.light-mode ::-webkit-scrollbar-track {
+  background: #f1f5f9 !important;
+}
+
+html.light-mode ::-webkit-scrollbar-thumb {
+  background: #cbd5e1 !important;
+}
+
+html.light-mode ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8 !important;
+}
+
+/* Base Canvas & Backgrounds */
+html.light-mode .bg-\[\#0b0f19\] {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+/* Primary surface containers (Cards, Modals, Navbar, Sidebar) */
+html.light-mode .bg-slate-900,
+html.light-mode .bg-slate-900\/95,
+html.light-mode .bg-slate-900\/90,
+html.light-mode .bg-slate-900\/80,
+html.light-mode .bg-slate-900\/70,
+html.light-mode .bg-slate-900\/60,
+html.light-mode .bg-slate-900\/50 {
+  background-color: #ffffff !important;
+}
+
+/* Dark inset surfaces (Inputs, search boxes, code blocks, dark pills) */
+html.light-mode .bg-slate-950,
+html.light-mode .bg-slate-950\/95,
+html.light-mode .bg-slate-950\/90,
+html.light-mode .bg-slate-950\/80,
+html.light-mode .bg-slate-950\/70,
+html.light-mode .bg-slate-950\/60 {
+  background-color: #f1f5f9 !important;
+}
+
+html.light-mode .bg-slate-850\/90,
+html.light-mode .hover\:bg-slate-850\/90:hover,
+html.light-mode .bg-slate-800,
+html.light-mode .bg-slate-800\/90,
+html.light-mode .bg-slate-800\/80,
+html.light-mode .bg-slate-800\/70,
+html.light-mode .bg-slate-800\/60,
+html.light-mode .bg-slate-800\/50,
+html.light-mode .bg-slate-800\/40,
+html.light-mode .bg-slate-800\/30 {
+  background-color: #f8fafc !important;
+}
+
+/* Hover states in bright mode */
+html.light-mode .hover\:bg-slate-800:hover,
+html.light-mode .hover\:bg-slate-800\/80:hover,
+html.light-mode .hover\:bg-slate-800\/60:hover,
+html.light-mode .hover\:bg-slate-800\/50:hover,
+html.light-mode .hover\:bg-slate-700:hover {
+  background-color: #e2e8f0 !important;
+}
+
+/* Borders in bright mode */
+html.light-mode .border-slate-800,
+html.light-mode .border-slate-800\/90,
+html.light-mode .border-slate-800\/80,
+html.light-mode .border-slate-800\/70,
+html.light-mode .border-slate-800\/60,
+html.light-mode .border-slate-800\/50,
+html.light-mode .border-slate-800\/40,
+html.light-mode .border-slate-800\/30 {
+  border-color: #e2e8f0 !important;
+}
+
+html.light-mode .border-slate-700,
+html.light-mode .border-slate-700\/90,
+html.light-mode .border-slate-700\/80,
+html.light-mode .border-slate-700\/60,
+html.light-mode .border-slate-700\/50 {
+  border-color: #cbd5e1 !important;
+}
+
+/* Typography in bright mode */
+html.light-mode .text-white {
+  color: #0f172a !important;
+}
+
+html.light-mode .text-slate-100,
+html.light-mode .text-slate-200 {
+  color: #1e293b !important;
+}
+
+html.light-mode .text-slate-300,
+html.light-mode .text-slate-400 {
+  color: #475569 !important;
+}
+
+html.light-mode .text-slate-500 {
+  color: #64748b !important;
+}
+
+/* Form controls in bright mode */
+html.light-mode input[type="text"],
+html.light-mode input[type="email"],
+html.light-mode input[type="password"],
+html.light-mode input[type="number"],
+html.light-mode textarea,
+html.light-mode select {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light-mode input::placeholder,
+html.light-mode textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Modal and card elevation in bright mode */
+html.light-mode .shadow-2xl,
+html.light-mode .shadow-xl {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04) !important;
+}
+
 /* Code block styles */
 pre code {
   font-family: 'Fira Code', 'JetBrains Mono', Consolas, Monaco, monospace;
+}
+
+html.light-mode pre {
+  background-color: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
 }
