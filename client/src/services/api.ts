@@ -409,6 +409,51 @@ class ApiService {
     if (!res.ok) throw new Error('Failed to import backup');
     return res.json();
   }
+
+  // ================= 3-Month Trial & Subscription Billing =================
+  async getSubscriptionStatus(): Promise<{ success: boolean; subscription: any; plans: any[] }> {
+    const res = await fetch(`${API_BASE}/subscription/status`, {
+      headers: this.getHeaders(),
+    });
+    if (!res.ok) throw new Error('Failed to fetch subscription status');
+    return res.json();
+  }
+
+  async checkoutSubscription(data: {
+    planId: string;
+    billingCycle: 'monthly' | 'yearly' | 'lifetime';
+    paymentMethod: string;
+    promoCode?: string;
+    cardName?: string;
+  }): Promise<{ success: boolean; message: string; transactionId: string; amount: number; subscription: any; user: User }> {
+    const res = await fetch(`${API_BASE}/subscription/checkout`, {
+      method: 'POST',
+      headers: this.getHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(data),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Payment failed');
+    return json;
+  }
+
+  async getPaymentHistory(): Promise<{ success: boolean; payments: any[] }> {
+    const res = await fetch(`${API_BASE}/subscription/history`, {
+      headers: this.getHeaders(),
+    });
+    if (!res.ok) throw new Error('Failed to fetch payment history');
+    return res.json();
+  }
+
+  async devSimulateTrialExpiry(expired: boolean): Promise<{ success: boolean; message: string; subscription: any; user: User }> {
+    const res = await fetch(`${API_BASE}/subscription/dev-simulate-expiry`, {
+      method: 'POST',
+      headers: this.getHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ expired }),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Failed to simulate trial expiry');
+    return json;
+  }
 }
 
 export const api = new ApiService();

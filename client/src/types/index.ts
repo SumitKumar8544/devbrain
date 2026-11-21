@@ -1,3 +1,39 @@
+export interface UserSubscription {
+  tier: 'free_trial' | 'student_pro' | 'researcher_pro' | 'lifetime';
+  status: 'trialing' | 'active' | 'expired' | 'cancelled';
+  trialEndsAt: string;
+  daysLeftInTrial: number;
+  isTrialExpired: boolean;
+  isSubscribed: boolean;
+  canCreateNotes: boolean;
+  expiresAt: string | null;
+}
+
+export interface SubscriptionPlan {
+  id: 'student_pro' | 'researcher_pro' | 'lifetime';
+  name: string;
+  badge?: string;
+  monthlyPrice: number | null;
+  yearlyPrice: number;
+  description: string;
+  popular?: boolean;
+  features: string[];
+}
+
+export interface PaymentRecord {
+  id: string;
+  user_id: string;
+  plan_id: string;
+  plan_name: string;
+  amount: number;
+  currency: string;
+  billing_cycle: string;
+  payment_method: string;
+  status: string;
+  transaction_id: string;
+  created_at: string;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -6,6 +42,11 @@ export interface User {
   role?: string;
   grade_or_level?: string;
   created_at?: string;
+  trial_ends_at?: string;
+  subscription_tier?: 'free_trial' | 'student_pro' | 'researcher_pro' | 'lifetime';
+  subscription_status?: 'trialing' | 'active' | 'expired' | 'cancelled';
+  subscription_expires_at?: string;
+  subscription?: UserSubscription;
 }
 
 export type Difficulty = 'Beginner' | 'Intermediate' | 'Advanced';

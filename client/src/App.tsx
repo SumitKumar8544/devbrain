@@ -14,6 +14,7 @@ import { DashboardStats } from './components/DashboardStats';
 import { PublicNoteView } from './components/PublicNoteView';
 import { CommandPalette } from './components/CommandPalette';
 import { WhiteboardCanvas } from './components/WhiteboardCanvas';
+import { SubscriptionModal } from './components/SubscriptionModal';
 import { useToast } from './context/ToastContext';
 import {
   FolderPlus,
@@ -32,7 +33,9 @@ import {
   Star,
   Pin,
   Clock,
-  Brain
+  Brain,
+  Crown,
+  AlertTriangle
 } from 'lucide-react';
 
 export function App() {
@@ -89,6 +92,8 @@ export function App() {
   const [isSubjectModalOpen, setIsSubjectModalOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isCanvasOpen, setIsCanvasOpen] = useState(false);
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+  const [subscriptionReason, setSubscriptionReason] = useState<'expired' | 'upgrade' | 'ai_limit'>('upgrade');
   const [copilotAction, setCopilotAction] = useState<{ note: Note; action: string } | null>(null);
 
   // Global Keyboard Shortcuts (Ctrl+K, Ctrl+N, Ctrl+J)
@@ -223,6 +228,12 @@ export function App() {
   };
 
   const handleStartCreate = () => {
+    // If 3-month trial has expired and user is not subscribed, prompt paywall
+    if (currentUser?.subscription?.isTrialExpired && !currentUser?.subscription?.isSubscribed) {
+      setSubscriptionReason('expired');
+      setIsSubscriptionModalOpen(true);
+      return;
+    }
     setActiveNote(null);
     setIsEditing(false);
     setIsCreating(true);
@@ -284,12 +295,22 @@ export function App() {
 
   const handleQuickAI = (note: Note, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (currentUser?.subscription?.isTrialExpired && !currentUser?.subscription?.isSubscribed) {
+      setSubscriptionReason('ai_limit');
+      setIsSubscriptionModalOpen(true);
+      return;
+    }
     setActiveNote(note);
     setIsCopilotOpen(true);
     setCopilotAction({ note, action: 'explain' });
   };
 
   const handleAskAIAction = (note: Note, action: string) => {
+    if (currentUser?.subscription?.isTrialExpired && !currentUser?.subscription?.isSubscribed) {
+      setSubscriptionReason('ai_limit');
+      setIsSubscriptionModalOpen(true);
+      return;
+    }
     setActiveNote(note);
     setIsCopilotOpen(true);
     setCopilotAction({ note, action });
@@ -419,6 +440,10 @@ export function App() {
         showStats={showStats}
         totalNotes={notes.length}
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+        onOpenSubscription={() => {
+          setSubscriptionReason('upgrade');
+          setIsSubscriptionModalOpen(true);
+        }}
       />
 
       <div className="flex-1 flex overflow-hidden">
@@ -449,6 +474,38 @@ export function App() {
 
         {/* Central Workspace */}
         <main className="flex-1 overflow-y-auto px-4 sm:px-8 py-6">
+          {/* 3-Month Free Trial Expired Warning Banner */}
+          {currentUser?.subscription?.isTrialExpired && !currentUser?.subscription?.isSubscribed && (
+            <div className="mb-6 p-4.5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-rose-500/15 to-purple-500/15 border border-amber-500/40 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center flex-shrink-0">
+                  <Clock className="w-5 h-5 animate-pulse" />
+                </div>
+                <div>
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span>Your 3-Month Free Trial has expired</span>
+                    <span className="px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black uppercase">
+                      Action Required
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
+                    Your existing notes and materials are 100% safe. To continue creating new notes, uploading files, and using the AI Study Copilot, please pick a plan.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setSubscriptionReason('expired');
+                  setIsSubscriptionModalOpen(true);
+                }}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs shadow-md transition-all hover:scale-[1.02] flex items-center gap-1.5 flex-shrink-0 self-start sm:self-center cursor-pointer"
+              >
+                <Crown className="w-4 h-4" />
+                <span>Upgrade to Pro Plan</span>
+              </button>
+            </div>
+          )}
+
           {showStats && (
             <DashboardStats stats={stats} onClose={() => setShowStats(false)} />
           )}
@@ -793,6 +850,10 @@ export function App() {
         onDataImported={loadData}
         user={currentUser}
         onUserUpdated={(updatedUser) => setCurrentUser(updatedUser)}
+        onOpenSubscription={() => {
+          setSubscriptionReason('upgrade');
+          setIsSubscriptionModalOpen(true);
+        }}
       />
 
       {/* Subject Modal */}
@@ -855,6 +916,20 @@ export function App() {
           }
         }}
       />
+
+      {/* 3-Month Free Trial & Subscription Plans / Payment Modal */}
+      {currentUser && (
+        <SubscriptionModal
+          isOpen={isSubscriptionModalOpen}
+          onClose={() => setIsSubscriptionModalOpen(false)}
+          user={currentUser}
+          reason={subscriptionReason}
+          onUserUpdated={(updatedUser) => {
+            setCurrentUser(updatedUser);
+            loadData();
+          }}
+        />
+      )}
     </div>
   );
 }

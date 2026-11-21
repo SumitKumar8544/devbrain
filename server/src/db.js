@@ -85,9 +85,24 @@ export function initDB() {
       PRIMARY KEY (user_id, key),
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
+
+    CREATE TABLE IF NOT EXISTS payments (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      plan_id TEXT NOT NULL,
+      plan_name TEXT NOT NULL,
+      amount REAL NOT NULL,
+      currency TEXT DEFAULT 'USD',
+      billing_cycle TEXT NOT NULL,
+      payment_method TEXT DEFAULT 'credit_card',
+      status TEXT DEFAULT 'completed',
+      transaction_id TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
   `);
 
-  // Ensure attachments and universal user columns exist if table was created earlier
+  // Ensure attachments, universal user columns, and 3-month trial subscription columns exist
   try {
     const noteCols = db.prepare("PRAGMA table_info(notes)").all();
     if (!noteCols.some(c => c.name === 'attachments')) {
@@ -110,6 +125,21 @@ export function initDB() {
     if (!userCols.some(c => c.name === 'role')) {
       db.exec("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'Learner'");
     }
+    if (!userCols.some(c => c.name === 'trial_ends_at')) {
+      db.exec("ALTER TABLE users ADD COLUMN trial_ends_at TEXT");
+      // Set existing users to 90 days from their registration date
+      db.exec("UPDATE users SET trial_ends_at = datetime(created_at, '+90 days') WHERE trial_ends_at IS NULL");
+    }
+    if (!userCols.some(c => c.name === 'subscription_tier')) {
+      db.exec("ALTER TABLE users ADD COLUMN subscription_tier TEXT DEFAULT 'free_trial'");
+    }
+    if (!userCols.some(c => c.name === 'subscription_status')) {
+      db.exec("ALTER TABLE users ADD COLUMN subscription_status TEXT DEFAULT 'trialing'");
+    }
+    if (!userCols.some(c => c.name === 'subscription_expires_at')) {
+      db.exec("ALTER TABLE users ADD COLUMN subscription_expires_at TEXT");
+    }
+
     const subCols = db.prepare("PRAGMA table_info(subjects)").all();
     if (!subCols.some(c => c.name === 'category')) {
       db.exec("ALTER TABLE subjects ADD COLUMN category TEXT DEFAULT 'General'");

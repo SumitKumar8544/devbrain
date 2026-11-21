@@ -23,6 +23,10 @@ const UserSchema = new mongoose.Schema(
     institution: { type: String, default: '' },
     role: { type: String, default: 'Learner' },
     grade_or_level: { type: String, default: 'General' },
+    trial_ends_at: { type: Date, default: () => new Date(Date.now() + 90 * 24 * 60 * 60 * 1000) },
+    subscription_tier: { type: String, default: 'free_trial' }, // 'free_trial' | 'student_pro' | 'researcher_pro' | 'lifetime'
+    subscription_status: { type: String, default: 'trialing' }, // 'trialing' | 'active' | 'expired' | 'cancelled'
+    subscription_expires_at: { type: Date, default: null },
     created_at: { type: Date, default: Date.now },
   },
   { _id: false, timestamps: { createdAt: 'created_at', updatedAt: false } }

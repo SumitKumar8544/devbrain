@@ -15,7 +15,10 @@ import {
   FileText,
   Command,
   Sun,
-  Moon
+  Moon,
+  Clock,
+  Crown,
+  Zap
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -31,6 +34,7 @@ interface NavbarProps {
   showStats: boolean;
   totalNotes: number;
   onOpenCommandPalette?: () => void;
+  onOpenSubscription?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -45,6 +49,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onToggleStats,
   showStats,
   onOpenCommandPalette,
+  onOpenSubscription,
 }) => {
   const { theme, toggleTheme } = useTheme();
 
@@ -133,6 +138,45 @@ export const Navbar: React.FC<NavbarProps> = ({
             <Sparkles className="w-3.5 h-3.5 text-purple-500 dark:text-purple-400" />
             <span className="hidden sm:inline">AI Copilot</span>
           </button>
+
+          {/* 3-Month Free Trial / Subscription Plan Status Pill */}
+          {user && onOpenSubscription && (
+            <button
+              type="button"
+              onClick={onOpenSubscription}
+              title={
+                user.subscription?.isSubscribed
+                  ? 'DevBrain Pro Plan Active'
+                  : user.subscription?.isTrialExpired
+                  ? '3-Month Free Trial Expired — Click to Upgrade'
+                  : `${user.subscription?.daysLeftInTrial ?? 90} days left in your 3-Month Free Trial`
+              }
+              className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer ${
+                user.subscription?.isSubscribed
+                  ? 'bg-emerald-500/15 border border-emerald-500/35 text-emerald-600 dark:text-emerald-300 hover:scale-[1.02]'
+                  : user.subscription?.isTrialExpired
+                  ? 'bg-gradient-to-r from-amber-500 to-rose-500 text-white border border-amber-400 shadow-md animate-pulse hover:scale-[1.02]'
+                  : 'bg-sky-500/15 dark:bg-sky-950/60 border border-sky-500/30 text-sky-600 dark:text-sky-300 hover:bg-sky-500/25 hover:scale-[1.02]'
+              }`}
+            >
+              {user.subscription?.isSubscribed ? (
+                <>
+                  <Crown className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
+                  <span>PRO</span>
+                </>
+              ) : user.subscription?.isTrialExpired ? (
+                <>
+                  <Zap className="w-3.5 h-3.5 fill-current" />
+                  <span>Upgrade Plan</span>
+                </>
+              ) : (
+                <>
+                  <Clock className="w-3.5 h-3.5 text-sky-500 dark:text-sky-400" />
+                  <span>Trial: {user.subscription?.daysLeftInTrial ?? 90}d</span>
+                </>
+              )}
+            </button>
+          )}
 
           {/* New Note Button */}
           <button

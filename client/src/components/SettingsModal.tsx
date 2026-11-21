@@ -21,7 +21,11 @@ import {
   BookOpen,
   AlertCircle,
   Sun,
-  Moon
+  Moon,
+  CreditCard,
+  Crown,
+  Zap,
+  Clock
 } from 'lucide-react';
 
 interface SettingsModalProps {
@@ -30,6 +34,7 @@ interface SettingsModalProps {
   onDataImported: () => void;
   user?: User | null;
   onUserUpdated?: (updatedUser: User) => void;
+  onOpenSubscription?: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -38,10 +43,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onDataImported,
   user,
   onUserUpdated,
+  onOpenSubscription,
 }) => {
   const { error: toastError, success: toastSuccess } = useToast();
   const { theme, setTheme } = useTheme();
-  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'cloud'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'cloud' | 'billing'>('profile');
 
   // Profile Edit State
   const [name, setName] = useState(user?.name || '');
@@ -225,6 +231,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           >
             <Cloud className="w-3.5 h-3.5" />
             <span>Cloud & AI</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('billing')}
+            className={`flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-bold border-b-2 transition-all ${
+              activeTab === 'billing'
+                ? 'border-amber-400 text-amber-300'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <CreditCard className="w-3.5 h-3.5" />
+            <span>Billing & 3-Mo Trial</span>
           </button>
         </div>
 
@@ -573,6 +591,109 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <span>{importStatus}</span>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: BILLING & 3-MONTH TRIAL */}
+          {activeTab === 'billing' && (
+            <div className="space-y-4">
+              {/* Plan Overview Card */}
+              <div className="p-5 rounded-2xl bg-gradient-to-br from-amber-500/10 via-purple-500/10 to-slate-950 border border-amber-500/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <Crown className="w-5 h-5 text-amber-400" />
+                    <div>
+                      <h4 className="text-sm font-extrabold text-white">
+                        {user?.subscription?.tier === 'lifetime'
+                          ? 'Founder Lifetime Vault'
+                          : user?.subscription?.tier === 'researcher_pro'
+                          ? 'Engineer & Researcher Pro'
+                          : user?.subscription?.tier === 'student_pro'
+                          ? 'Student & Scholar Pro'
+                          : '3-Month Free Trial'}
+                      </h4>
+                      <p className="text-[11px] text-slate-400">
+                        {user?.subscription?.isSubscribed
+                          ? 'Full unlimited Pro access to all AI models and vault'
+                          : `${user?.subscription?.daysLeftInTrial ?? 90} days remaining in your free trial`}
+                      </p>
+                    </div>
+                  </div>
+
+                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
+                    user?.subscription?.isSubscribed
+                      ? 'bg-emerald-500 text-white'
+                      : user?.subscription?.isTrialExpired
+                      ? 'bg-amber-500 text-slate-950'
+                      : 'bg-sky-500 text-white'
+                  }`}>
+                    {user?.subscription?.isSubscribed
+                      ? 'ACTIVE PRO'
+                      : user?.subscription?.isTrialExpired
+                      ? 'EXPIRED'
+                      : 'TRIALING'}
+                  </span>
+                </div>
+
+                {/* Trial Expiration Info */}
+                {!user?.subscription?.isSubscribed && (
+                  <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 text-xs text-slate-300 space-y-1.5">
+                    <div className="flex items-center justify-between text-[11px] text-slate-400">
+                      <span>Trial Timeline:</span>
+                      <span className="font-semibold text-white">
+                        {user?.subscription?.daysLeftInTrial ?? 90} days left (3 months total)
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                      <div
+                        className="bg-gradient-to-r from-sky-400 to-indigo-500 h-full rounded-full"
+                        style={{ width: `${Math.min(100, Math.max(5, ((90 - (user?.subscription?.daysLeftInTrial ?? 90)) / 90) * 100))}%` }}
+                      />
+                    </div>
+                    <p className="text-[10px] text-slate-400">
+                      After 90 days, an active subscription plan is required to add new notes or ask the AI Study Copilot.
+                    </p>
+                  </div>
+                )}
+
+                {/* Upgrade Button */}
+                {onOpenSubscription && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenSubscription();
+                    }}
+                    className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-xs font-extrabold shadow-md hover:scale-[1.01] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <Crown className="w-4 h-4" />
+                    <span>{user?.subscription?.isSubscribed ? 'Change Subscription Plan' : 'Upgrade to DevBrain Pro Plan'}</span>
+                  </button>
+                )}
+              </div>
+
+              {/* What You Get In Pro */}
+              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2.5 text-xs text-slate-300">
+                <h5 className="font-bold text-white text-xs">Included in DevBrain Pro Plans:</h5>
+                <ul className="space-y-1.5 text-slate-400 text-[11px]">
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                    <span>Unlimited multi-photo handwriting & whiteboard sketch uploads</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                    <span>Full AI Study Copilot (Gemini 2.5 Flash + GPT-4o)</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                    <span>Interactive revision quizzes & flashcard generator</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                    <span>Continuous automated cloud synchronization</span>
+                  </li>
+                </ul>
               </div>
             </div>
           )}

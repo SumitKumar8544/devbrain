@@ -152,6 +152,34 @@ function getUserId(req) {
   return req.headers['x-user-id'] || req.query.userId || null;
 }
 
+function getUserSubscriptionInfo(user) {
+  if (!user) return null;
+  const now = Date.now();
+  const createdAtMs = user.created_at ? new Date(user.created_at).getTime() : now;
+  const trialEndsAtMs = user.trial_ends_at
+    ? new Date(user.trial_ends_at).getTime()
+    : createdAtMs + (90 * 24 * 60 * 60 * 1000); // 90 days = 3 Months
+  
+  const tier = user.subscription_tier || 'free_trial';
+  const status = user.subscription_status || 'trialing';
+  const expiresAtMs = user.subscription_expires_at ? new Date(user.subscription_expires_at).getTime() : null;
+
+  const isSubscribed = (status === 'active' || status === 'lifetime') && tier !== 'free_trial' && (!expiresAtMs || expiresAtMs > now);
+  const isTrialExpired = !isSubscribed && now > trialEndsAtMs;
+  const daysLeftInTrial = isSubscribed ? 0 : Math.max(0, Math.ceil((trialEndsAtMs - now) / (1000 * 60 * 60 * 24)));
+
+  return {
+    tier, // 'free_trial' | 'student_pro' | 'researcher_pro' | 'lifetime'
+    status: isSubscribed ? 'active' : (isTrialExpired ? 'expired' : 'trialing'),
+    trialEndsAt: new Date(trialEndsAtMs).toISOString(),
+    daysLeftInTrial,
+    isTrialExpired,
+    isSubscribed,
+    canCreateNotes: isSubscribed || !isTrialExpired,
+    expiresAt: user.subscription_expires_at || null,
+  };
+}
+
 async function requireAuth(req, res, next) {
   const userId = getUserId(req);
   if (!userId) {
@@ -170,6 +198,11 @@ async function requireAuth(req, res, next) {
           institution: doc.institution,
           role: doc.role,
           grade_or_level: doc.grade_or_level,
+          created_at: doc.created_at,
+          trial_ends_at: doc.trial_ends_at,
+          subscription_tier: doc.subscription_tier,
+          subscription_status: doc.subscription_status,
+          subscription_expires_at: doc.subscription_expires_at,
         };
       }
     } catch (e) {
@@ -178,13 +211,32 @@ async function requireAuth(req, res, next) {
   }
 
   if (!user) {
-    user = db.prepare('SELECT id, name, email, institution, role, grade_or_level FROM users WHERE id = ?').get(userId);
+    user = db.prepare(`
+      SELECT id, name, email, institution, role, grade_or_level, created_at,
+             trial_ends_at, subscription_tier, subscription_status, subscription_expires_at
+      FROM users WHERE id = ?
+    `).get(userId);
   }
 
   if (!user) {
     return res.status(401).json({ error: 'Session expired or invalid. Please sign in again.' });
   }
+
+  user.subscription = getUserSubscriptionInfo(user);
   req.user = user;
+  next();
+}
+
+// Enforces 3-month free trial: locked after 3 months unless subscribed to a plan
+function requireActiveSubscription(req, res, next) {
+  const subInfo = req.user?.subscription || getUserSubscriptionInfo(req.user);
+  if (!subInfo.canCreateNotes) {
+    return res.status(403).json({
+      error: 'Your 3-Month Free Trial has expired. Upgrade to a DevBrain subscription plan to continue creating notes, uploading files, and using the AI Study Copilot.',
+      code: 'TRIAL_EXPIRED',
+      subscription: subInfo,
+    });
+  }
   next();
 }
 
@@ -201,7 +253,7 @@ app.get('/api/health', (req, res) => {
 // ==========================================
 // 1. FILE UPLOAD (MULTIPLE PHOTOS, PDFS, DOCUMENTS)
 // ==========================================
-app.post('/api/upload', requireAuth, upload.array('files', 50), async (req, res) => {
+app.post('/api/upload', requireAuth, requireActiveSubscription, upload.array('files', 50), async (req, res) => {
   try {
     const files = req.files || [];
     if (!files || files.length === 0) {
@@ -300,11 +352,14 @@ app.post('/api/auth/register', async (req, res) => {
 
     const userId = `user-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
     const passwordHash = hashPassword(password);
+    const now = new Date();
+    // 3 Months Free Trial = 90 days from registration
+    const trialEndsAt = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString();
 
     // Save to local SQLite
     db.prepare(`
-      INSERT INTO users (id, name, email, password, institution, role, grade_or_level)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO users (id, name, email, password, institution, role, grade_or_level, trial_ends_at, subscription_tier, subscription_status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'free_trial', 'trialing')
     `).run(
       userId,
       name.trim().slice(0, 80),
@@ -312,7 +367,8 @@ app.post('/api/auth/register', async (req, res) => {
       passwordHash,
       institution ? String(institution).trim().slice(0, 100) : '',
       role ? String(role).trim().slice(0, 50) : 'Learner',
-      grade_or_level ? String(grade_or_level).trim().slice(0, 50) : 'General'
+      grade_or_level ? String(grade_or_level).trim().slice(0, 50) : 'General',
+      trialEndsAt
     );
 
     // Save to MongoDB Atlas
@@ -326,6 +382,9 @@ app.post('/api/auth/register', async (req, res) => {
           institution: institution ? String(institution).trim().slice(0, 100) : '',
           role: role ? String(role).trim().slice(0, 50) : 'Learner',
           grade_or_level: grade_or_level ? String(grade_or_level).trim().slice(0, 50) : 'General',
+          trial_ends_at: trialEndsAt,
+          subscription_tier: 'free_trial',
+          subscription_status: 'trialing',
         });
       } catch (mongoErr) {
         console.warn('[Auth] MongoUser create warning:', mongoErr.message);
@@ -339,8 +398,12 @@ app.post('/api/auth/register', async (req, res) => {
       institution: institution ? String(institution).trim().slice(0, 100) : '',
       role: role ? String(role).trim().slice(0, 50) : 'Learner',
       grade_or_level: grade_or_level ? String(grade_or_level).trim().slice(0, 50) : 'General',
-      created_at: new Date().toISOString()
+      created_at: now.toISOString(),
+      trial_ends_at: trialEndsAt,
+      subscription_tier: 'free_trial',
+      subscription_status: 'trialing',
     };
+    user.subscription = getUserSubscriptionInfo(user);
 
     res.status(201).json({ success: true, user });
   } catch (err) {
@@ -378,12 +441,16 @@ app.post('/api/auth/login', async (req, res) => {
             role: mongoUser.role,
             grade_or_level: mongoUser.grade_or_level,
             created_at: mongoUser.created_at,
+            trial_ends_at: mongoUser.trial_ends_at,
+            subscription_tier: mongoUser.subscription_tier,
+            subscription_status: mongoUser.subscription_status,
+            subscription_expires_at: mongoUser.subscription_expires_at,
           };
           // Sync into local SQLite for fast relational joins
           try {
             db.prepare(`
-              INSERT OR REPLACE INTO users (id, name, email, password, institution, role, grade_or_level)
-              VALUES (?, ?, ?, ?, ?, ?, ?)
+              INSERT OR REPLACE INTO users (id, name, email, password, institution, role, grade_or_level, trial_ends_at, subscription_tier, subscription_status, subscription_expires_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `).run(
               user.id,
               user.name,
@@ -391,7 +458,11 @@ app.post('/api/auth/login', async (req, res) => {
               passwordHash,
               user.institution,
               user.role,
-              user.grade_or_level
+              user.grade_or_level,
+              user.trial_ends_at ? new Date(user.trial_ends_at).toISOString() : null,
+              user.subscription_tier || 'free_trial',
+              user.subscription_status || 'trialing',
+              user.subscription_expires_at ? new Date(user.subscription_expires_at).toISOString() : null
             );
           } catch (syncErr) {}
         }
@@ -403,7 +474,8 @@ app.post('/api/auth/login', async (req, res) => {
     // Fallback to SQLite
     if (!user) {
       user = db.prepare(`
-        SELECT id, name, email, institution, role, grade_or_level, created_at
+        SELECT id, name, email, institution, role, grade_or_level, created_at,
+               trial_ends_at, subscription_tier, subscription_status, subscription_expires_at
         FROM users
         WHERE email = ? AND password = ?
       `).get(cleanEmail, passwordHash);
@@ -412,6 +484,8 @@ app.post('/api/auth/login', async (req, res) => {
     if (!user) {
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
+
+    user.subscription = getUserSubscriptionInfo(user);
 
     res.json({ success: true, user });
   } catch (err) {
@@ -701,7 +775,7 @@ app.get('/api/notes/:id', requireAuth, (req, res) => {
   }
 });
 
-app.post('/api/notes', requireAuth, (req, res) => {
+app.post('/api/notes', requireAuth, requireActiveSubscription, (req, res) => {
   try {
     const userId = req.user.id;
     const {
@@ -930,7 +1004,7 @@ app.get('/api/public/notes/:shareId', (req, res) => {
 // ==========================================
 // 6. AI STUDY & UNDERSTANDING CHAT
 // ==========================================
-app.post('/api/ai/chat', requireAuth, async (req, res) => {
+app.post('/api/ai/chat', requireAuth, requireActiveSubscription, async (req, res) => {
   try {
     const { message, noteId, history, action, provider, model } = req.body;
 
@@ -1082,6 +1156,236 @@ app.post('/api/import', requireAuth, (req, res) => {
     }
 
     res.json({ success: true, importedSubjects: subjects.length, importedNotes: notes.length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==========================================
+// 8. 3-MONTH FREE TRIAL & SUBSCRIPTION BILLING
+// ==========================================
+
+// Get current subscription status, trial countdown & available plans
+app.get('/api/subscription/status', requireAuth, (req, res) => {
+  try {
+    const subInfo = getUserSubscriptionInfo(req.user);
+    res.json({
+      success: true,
+      subscription: subInfo,
+      plans: [
+        {
+          id: 'student_pro',
+          name: 'Student & Scholar Pro',
+          badge: 'Most Popular',
+          monthlyPrice: 4.99,
+          yearlyPrice: 3.99, // $47.88/yr (Save 20%)
+          description: 'Full AI study copilot, unlimited notes, and handwriting OCR for school & college learners.',
+          popular: true,
+          features: [
+            'Unlimited study notes & notebook categories',
+            'Full AI Study Copilot (Gemini 2.5 Flash)',
+            'Unlimited handwriting photos & whiteboard sketches',
+            'PDF document reader with instant explanations',
+            'Interactive flashcard generation & quiz me',
+            'LaTeX math formulas & syntax highlighted code',
+            'Universal Bright & Dark glassmorphic themes',
+            'Encrypted backup & cloud sync'
+          ]
+        },
+        {
+          id: 'researcher_pro',
+          name: 'Engineer & Researcher Pro',
+          badge: 'Power Learner',
+          monthlyPrice: 9.99,
+          yearlyPrice: 7.99, // $95.88/yr
+          description: 'Advanced dual-engine AI reasoning, high-res PDF OCR, and unlimited multi-device vault sync.',
+          popular: false,
+          features: [
+            'Everything in Student Pro, plus:',
+            'Dual AI Model Engines: Gemini 2.5 + OpenAI GPT-4o',
+            'Priority OCR handwriting & diagram extraction',
+            'Supabase cloud storage integration',
+            'Public shareable note links with live preview',
+            'Priority queue processing & zero rate limits',
+            'Dedicated 24/7 priority developer support'
+          ]
+        },
+        {
+          id: 'lifetime',
+          name: 'Lifetime Founder Vault',
+          badge: 'One-Time Payment',
+          monthlyPrice: null,
+          yearlyPrice: 79.00,
+          description: 'Pay once, own your private knowledge vault forever. Never pay a monthly fee again.',
+          popular: false,
+          features: [
+            'All current and future Pro features included',
+            'Zero recurring monthly or annual subscription fees',
+            'Forever access to DevBrain cloud sync & storage',
+            'Early access to new AI models and tools',
+            'Special VIP Founder badge in your profile'
+          ]
+        }
+      ]
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Process subscription upgrade / checkout
+app.post('/api/subscription/checkout', requireAuth, async (req, res) => {
+  try {
+    const { planId, billingCycle, paymentMethod, promoCode, cardName } = req.body;
+    // planId: 'student_pro' | 'researcher_pro' | 'lifetime'
+    // billingCycle: 'monthly' | 'yearly' | 'lifetime'
+
+    let basePrice = 4.99;
+    let planName = 'Student & Scholar Pro';
+
+    if (planId === 'researcher_pro') {
+      basePrice = billingCycle === 'yearly' ? 7.99 * 12 : 9.99;
+      planName = 'Engineer & Researcher Pro';
+    } else if (planId === 'lifetime') {
+      basePrice = 79.00;
+      planName = 'Lifetime Founder Vault';
+    } else {
+      basePrice = billingCycle === 'yearly' ? 3.99 * 12 : 4.99;
+      planName = 'Student & Scholar Pro';
+    }
+
+    // Apply coupon discount if provided (e.g. STUDENT50 for 50% off)
+    let discountPercent = 0;
+    if (promoCode) {
+      const code = String(promoCode).trim().toUpperCase();
+      if (code === 'STUDENT50' || code === 'SCHOLAR50') {
+        discountPercent = 50;
+      } else if (code === 'DEV20' || code === 'WELCOME20') {
+        discountPercent = 20;
+      }
+    }
+
+    const finalAmount = Math.max(0.99, Number((basePrice * (1 - discountPercent / 100)).toFixed(2)));
+    const transactionId = `txn_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+    const now = new Date();
+
+    // Calculate expiration date
+    let expiresAt = null;
+    if (planId === 'lifetime') {
+      expiresAt = new Date(now.getFullYear() + 100, now.getMonth(), now.getDate()).toISOString();
+    } else if (billingCycle === 'yearly') {
+      expiresAt = new Date(now.getFullYear() + 1, now.getMonth(), now.getDate()).toISOString();
+    } else {
+      expiresAt = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate()).toISOString();
+    }
+
+    // Record payment in SQLite
+    const paymentId = `pay_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
+    db.prepare(`
+      INSERT INTO payments (id, user_id, plan_id, plan_name, amount, currency, billing_cycle, payment_method, status, transaction_id, created_at)
+      VALUES (?, ?, ?, ?, ?, 'USD', ?, ?, 'completed', ?, datetime('now'))
+    `).run(paymentId, req.user.id, planId, planName, finalAmount, billingCycle || 'monthly', paymentMethod || 'credit_card', transactionId);
+
+    // Update user subscription in SQLite
+    db.prepare(`
+      UPDATE users
+      SET subscription_tier = ?, subscription_status = 'active', subscription_expires_at = ?
+      WHERE id = ?
+    `).run(planId, expiresAt, req.user.id);
+
+    // Update in MongoDB if connected
+    if (isMongoConnected()) {
+      try {
+        await MongoUser.findByIdAndUpdate(req.user.id, {
+          subscription_tier: planId,
+          subscription_status: 'active',
+          subscription_expires_at: expiresAt,
+        });
+      } catch (e) {
+        console.warn('[Subscription] MongoUser update warning:', e.message);
+      }
+    }
+
+    // Fetch refreshed user record
+    const updatedUser = db.prepare(`
+      SELECT id, name, email, institution, role, grade_or_level, created_at,
+             trial_ends_at, subscription_tier, subscription_status, subscription_expires_at
+      FROM users WHERE id = ?
+    `).get(req.user.id);
+    const subInfo = getUserSubscriptionInfo(updatedUser);
+
+    res.json({
+      success: true,
+      message: `🎉 Success! Your ${planName} subscription is now active.`,
+      transactionId,
+      amount: finalAmount,
+      currency: 'USD',
+      subscription: subInfo,
+      user: {
+        ...updatedUser,
+        subscription: subInfo,
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get user payment & billing history
+app.get('/api/subscription/history', requireAuth, (req, res) => {
+  try {
+    const history = db.prepare(`
+      SELECT * FROM payments WHERE user_id = ? ORDER BY created_at DESC
+    `).all(req.user.id);
+    res.json({ success: true, payments: history || [] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Developer helper: toggle trial expiration for quick testing in UI
+app.post('/api/subscription/dev-simulate-expiry', requireAuth, (req, res) => {
+  try {
+    const { expired } = req.body;
+    const now = new Date();
+    // If expired is true, set trial_ends_at to 1 day ago; otherwise set to 90 days in the future
+    const newTrialEnds = expired
+      ? new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString()
+      : new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString();
+    
+    const newTier = expired ? 'free_trial' : req.user.subscription_tier || 'free_trial';
+    const newStatus = expired ? 'expired' : 'trialing';
+
+    db.prepare(`
+      UPDATE users
+      SET trial_ends_at = ?, subscription_tier = ?, subscription_status = ?
+      WHERE id = ?
+    `).run(newTrialEnds, newTier, newStatus, req.user.id);
+
+    if (isMongoConnected()) {
+      MongoUser.findByIdAndUpdate(req.user.id, {
+        trial_ends_at: newTrialEnds,
+        subscription_tier: newTier,
+        subscription_status: newStatus,
+      }).catch(() => {});
+    }
+
+    const updatedUser = db.prepare(`
+      SELECT id, name, email, institution, role, grade_or_level, created_at,
+             trial_ends_at, subscription_tier, subscription_status, subscription_expires_at
+      FROM users WHERE id = ?
+    `).get(req.user.id);
+    const subInfo = getUserSubscriptionInfo(updatedUser);
+
+    res.json({
+      success: true,
+      message: expired ? 'Simulated trial expiration: trial is now expired.' : 'Reset trial: 90 days remaining.',
+      subscription: subInfo,
+      user: {
+        ...updatedUser,
+        subscription: subInfo,
+      }
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
