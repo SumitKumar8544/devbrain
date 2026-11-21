@@ -53,7 +53,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <aside className="w-64 bg-slate-900/60 border-r border-slate-800/80 p-4 flex flex-col h-[calc(100vh-61px)] overflow-y-auto">
       {/* Quick Filters */}
       <div className="mb-6">
-        <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2 px-2">
+        <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2 px-2">
           Vault Views
         </h3>
         <nav className="space-y-1">
@@ -62,17 +62,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onSelectFilter('all');
               onSelectSubject(null);
             }}
-            className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-medium transition-all ${
               activeFilter === 'all' && activeSubjectId === null
-                ? 'bg-cyan-500/15 text-cyan-300 font-semibold border border-cyan-500/30'
-                : 'text-slate-300 hover:bg-slate-800/50 hover:text-white'
+                ? 'bg-sky-500/15 text-sky-600 dark:text-sky-300 font-semibold border border-sky-500/30 shadow-xs'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
-            <div className="flex items-center gap-2">
-              <BookOpen className="w-4 h-4 text-cyan-400" />
+            <div className="flex items-center gap-2.5">
+              <div className="w-6 h-6 rounded-lg bg-sky-500/10 text-sky-500 flex items-center justify-center flex-shrink-0">
+                <BookOpen className="w-3.5 h-3.5" />
+              </div>
               <span>All Notes & Documents</span>
             </div>
-            <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-400">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
               {filterCounts.all}
             </span>
           </button>
@@ -82,17 +84,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onSelectFilter('starred');
               onSelectSubject(null);
             }}
-            className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-medium transition-all ${
               activeFilter === 'starred'
-                ? 'bg-amber-500/15 text-amber-300 font-semibold border border-amber-500/30'
-                : 'text-slate-300 hover:bg-slate-800/50 hover:text-white'
+                ? 'bg-amber-500/15 text-amber-600 dark:text-amber-300 font-semibold border border-amber-500/30 shadow-xs'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
-            <div className="flex items-center gap-2">
-              <Star className="w-4 h-4 text-amber-400 fill-amber-400/30" />
+            <div className="flex items-center gap-2.5">
+              <div className="w-6 h-6 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center flex-shrink-0">
+                <Star className="w-3.5 h-3.5 fill-amber-500" />
+              </div>
               <span>Starred & Favorites</span>
             </div>
-            <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-400">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
               {filterCounts.starred}
             </span>
           </button>
@@ -102,17 +106,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onSelectFilter('exam');
               onSelectSubject(null);
             }}
-            className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-medium transition-all ${
               activeFilter === 'exam'
-                ? 'bg-purple-500/15 text-purple-300 font-semibold border border-purple-500/30'
-                : 'text-slate-300 hover:bg-slate-800/50 hover:text-white'
+                ? 'bg-purple-500/15 text-purple-600 dark:text-purple-300 font-semibold border border-purple-500/30 shadow-xs'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
-            <div className="flex items-center gap-2">
-              <GraduationCap className="w-4 h-4 text-purple-400" />
+            <div className="flex items-center gap-2.5">
+              <div className="w-6 h-6 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center flex-shrink-0">
+                <GraduationCap className="w-3.5 h-3.5" />
+              </div>
               <span>Exam / Test Prep</span>
             </div>
-            <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-400">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
               {filterCounts.exam}
             </span>
           </button>
@@ -122,17 +128,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onSelectFilter('interview');
               onSelectSubject(null);
             }}
-            className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-medium transition-all ${
               activeFilter === 'interview'
-                ? 'bg-emerald-500/15 text-emerald-300 font-semibold border border-emerald-500/30'
-                : 'text-slate-300 hover:bg-slate-800/50 hover:text-white'
+                ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 font-semibold border border-emerald-500/30 shadow-xs'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
-            <div className="flex items-center gap-2">
-              <Target className="w-4 h-4 text-emerald-400" />
+            <div className="flex items-center gap-2.5">
+              <div className="w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center flex-shrink-0">
+                <Target className="w-3.5 h-3.5" />
+              </div>
               <span>Quick Reference</span>
             </div>
-            <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-400">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
               {filterCounts.interview}
             </span>
           </button>
@@ -142,17 +150,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onSelectFilter('mastered');
               onSelectSubject(null);
             }}
-            className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-medium transition-all ${
               activeFilter === 'mastered'
-                ? 'bg-blue-500/15 text-blue-300 font-semibold border border-blue-500/30'
-                : 'text-slate-300 hover:bg-slate-800/50 hover:text-white'
+                ? 'bg-blue-500/15 text-blue-600 dark:text-blue-300 font-semibold border border-blue-500/30 shadow-xs'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-blue-400" />
+            <div className="flex items-center gap-2.5">
+              <div className="w-6 h-6 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center flex-shrink-0">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+              </div>
               <span>Mastered Topics</span>
             </div>
-            <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-400">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
               {filterCounts.mastered}
             </span>
           </button>
@@ -161,28 +171,33 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Notebooks / Subjects List */}
       <div className="mb-6 flex-1">
-        <div className="flex items-center justify-between mb-2 px-2">
-          <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+        <div className="flex items-center justify-between mb-2.5 px-2">
+          <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
             Notebooks & Subjects
           </h3>
           <button
             onClick={onAddSubject}
             title="Add Custom Notebook"
-            className="text-slate-400 hover:text-cyan-400 transition-colors p-1"
+            className="w-5 h-5 rounded-md hover:bg-sky-500/10 text-slate-400 hover:text-sky-500 transition-colors flex items-center justify-center"
           >
-            <FolderPlus className="w-4 h-4" />
+            <FolderPlus className="w-3.5 h-3.5" />
           </button>
         </div>
 
         {subjects.length === 0 ? (
-          <div className="px-2 py-4 rounded-lg bg-slate-950/40 border border-slate-800/60 text-center">
-            <p className="text-[11px] text-slate-400 mb-2">No notebooks created yet.</p>
-            <button
-              onClick={onAddSubject}
-              className="text-xs text-cyan-400 hover:underline font-semibold"
-            >
-              + Create Category
-            </button>
+          <div
+            onClick={onAddSubject}
+            className="p-3.5 rounded-xl border border-dashed border-sky-400/40 bg-sky-500/5 hover:bg-sky-500/10 transition-all text-center cursor-pointer group shadow-xs"
+          >
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-sky-400 to-blue-600 text-white flex items-center justify-center mx-auto mb-2 shadow-xs group-hover:scale-105 transition-transform">
+              <FolderPlus className="w-4 h-4" />
+            </div>
+            <p className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-sky-500 transition-colors">
+              + New Notebook
+            </p>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+              Organize by course or semester
+            </p>
           </div>
         ) : (
           <div className="space-y-1">
@@ -283,24 +298,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
       )}
 
       {/* Quick Keyboard Shortcuts Footer */}
-      <div className="mt-auto pt-4 border-t border-slate-800/80">
-        <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
-          <div className="flex items-center justify-between text-[11px] text-slate-400 mb-1.5 font-medium">
+      <div className="mt-auto pt-4 border-t border-slate-200/80 dark:border-slate-800/80">
+        <div className="p-3 rounded-xl bg-slate-100/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 shadow-xs">
+          <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 mb-2 font-semibold">
             <span>Quick Shortcuts</span>
-            <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-[10px] font-mono text-cyan-400">⌘K</kbd>
+            <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-slate-800 text-[10px] font-mono text-sky-600 dark:text-sky-400 border border-slate-200 dark:border-slate-700 shadow-xs">⌘K</kbd>
           </div>
-          <div className="space-y-1.5 text-[11px] text-slate-400">
+          <div className="space-y-1.5 text-[11px] text-slate-600 dark:text-slate-400">
             <div className="flex items-center justify-between">
               <span>Fast Navigator</span>
-              <span className="font-mono text-slate-300">Ctrl + K</span>
+              <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-slate-800 text-[10px] font-mono border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 shadow-2xs">Ctrl + K</kbd>
             </div>
             <div className="flex items-center justify-between">
-              <span>New Study Note</span>
-              <span className="font-mono text-slate-300">Ctrl + N</span>
+              <span>New Note</span>
+              <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-slate-800 text-[10px] font-mono border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 shadow-2xs">Ctrl + N</kbd>
             </div>
             <div className="flex items-center justify-between">
-              <span>AI Study Copilot</span>
-              <span className="font-mono text-slate-300">Ctrl + J</span>
+              <span>AI Copilot</span>
+              <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-slate-800 text-[10px] font-mono border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 shadow-2xs">Ctrl + J</kbd>
             </div>
           </div>
         </div>

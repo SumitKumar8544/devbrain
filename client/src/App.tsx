@@ -455,10 +455,10 @@ export function App() {
           ) : (
             /* Mode 4: Notes Explorer */
             <div className="max-w-7xl mx-auto space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 dark:border-slate-800/80 pb-4">
                 <div>
                   <div className="flex items-center gap-3 flex-wrap">
-                    <h1 className="text-xl sm:text-2xl font-extrabold text-white flex items-center gap-2">
+                    <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                       {activeSubjectId
                         ? subjects.find((s) => s.id === activeSubjectId)?.name || 'Notebook Notes'
                         : activeFilter === 'starred'
@@ -484,7 +484,7 @@ export function App() {
                             handleDeleteSubject(activeSubjectId);
                           }
                         }}
-                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/50 text-rose-300 text-xs font-semibold transition-all shadow-sm"
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-800/50 text-rose-600 dark:text-rose-300 text-xs font-semibold transition-all shadow-xs"
                         title="Delete this notebook category"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -492,22 +492,22 @@ export function App() {
                       </button>
                     )}
                   </div>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Showing {filteredNotes.length} saved notes
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Showing <span className="font-semibold text-slate-700 dark:text-slate-300">{filteredNotes.length}</span> saved study notes • Organized & ready for revision
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5">
                   <Filter className="w-3.5 h-3.5 text-slate-400" />
-                  <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-0.5 text-xs">
+                  <div className="flex items-center bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full p-1 text-xs shadow-xs">
                     {(['All', 'Beginner', 'Intermediate', 'Advanced'] as const).map((diff) => (
                       <button
                         key={diff}
                         onClick={() => setDifficultyFilter(diff)}
-                        className={`px-2.5 py-1 rounded font-medium transition-all ${
+                        className={`px-3 py-1 rounded-full font-semibold transition-all ${
                           difficultyFilter === diff
-                            ? 'bg-cyan-500/20 text-cyan-300 font-semibold'
-                            : 'text-slate-400 hover:text-slate-200'
+                            ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-xs'
+                            : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200 font-medium'
                         }`}
                       >
                         {diff}

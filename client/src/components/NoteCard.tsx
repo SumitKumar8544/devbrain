@@ -10,7 +10,9 @@ import {
   Camera,
   FileText,
   Pin,
-  Globe
+  Globe,
+  Clock,
+  BookOpen
 } from 'lucide-react';
 
 interface NoteCardProps {
@@ -42,36 +44,64 @@ export const NoteCard: React.FC<NoteCardProps> = ({
 }) => {
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'Mastered': return 'bg-blue-950/70 text-blue-300 border-blue-800/60';
-      case 'Interview Ready': return 'bg-emerald-950/70 text-emerald-300 border-emerald-800/60';
-      case 'Exam Ready': return 'bg-purple-950/70 text-purple-300 border-purple-800/60';
-      case 'Revising': return 'bg-amber-950/70 text-amber-300 border-amber-800/60';
-      default: return 'bg-slate-800/80 text-slate-400 border-slate-700/60';
+      case 'Mastered':
+        return 'bg-blue-500/10 text-blue-600 dark:text-blue-300 border-blue-500/25';
+      case 'Interview Ready':
+        return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-300 border-emerald-500/25';
+      case 'Exam Ready':
+        return 'bg-purple-500/10 text-purple-600 dark:text-purple-300 border-purple-500/25';
+      case 'Revising':
+        return 'bg-amber-500/10 text-amber-600 dark:text-amber-300 border-amber-500/25';
+      default:
+        return 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20';
     }
   };
 
   const imageAttachments = note.attachments?.filter(a => a.type === 'image') || [];
   const pdfAttachments = note.attachments?.filter(a => a.type === 'pdf' || a.type === 'document') || [];
 
+  // Estimated reading time
+  const wordCount = (note.content || '').trim().split(/\s+/).filter(Boolean).length;
+  const readTime = Math.max(1, Math.ceil(wordCount / 160));
+
+  // Humanized excerpt
+  const cleanContent = (note.content || '')
+    .replace(/[#*`_\[\]()>-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const displaySummary = note.summary || (cleanContent.length > 0 ? cleanContent.slice(0, 135) + '...' : 'Interactive study note with revision key points & resources.');
+
+  const accentColor = note.subject_color || (note.pinned ? '#f59e0b' : '#38bdf8');
+
   return (
     <div
       onClick={() => onSelect(note)}
-      className={`group relative bg-slate-900/70 hover:bg-slate-850/90 border ${
-        note.pinned ? 'border-amber-500/40 shadow-sm shadow-amber-500/10' : 'border-slate-800 hover:border-slate-700/90'
-      } rounded-2xl p-4 cursor-pointer transition-all duration-200 hover:shadow-xl hover:shadow-cyan-950/20 hover:-translate-y-0.5 flex flex-col justify-between overflow-hidden`}
+      className={`group relative bg-white dark:bg-slate-900/80 border ${
+        note.pinned
+          ? 'border-amber-400/50 dark:border-amber-500/40 shadow-sm shadow-amber-500/10'
+          : 'border-slate-200/90 dark:border-slate-800/80 hover:border-sky-400/60 dark:hover:border-sky-500/50'
+      } rounded-2xl p-4.5 cursor-pointer transition-all duration-200 hover:shadow-xl hover:shadow-sky-500/5 hover:-translate-y-1 flex flex-col justify-between overflow-hidden`}
     >
+      {/* Decorative top color accent bar */}
+      <div
+        className="absolute top-0 left-0 right-0 h-1 transition-all group-hover:h-1.5"
+        style={{
+          background: `linear-gradient(to right, ${accentColor}, ${accentColor}88)`
+        }}
+      />
+
       <div>
         {/* Photo thumbnail banner if note has images */}
         {imageAttachments.length > 0 && (
-          <div className="w-full h-32 -mx-4 -mt-4 mb-3 bg-slate-950 overflow-hidden relative border-b border-slate-800">
+          <div className="w-full h-32 -mx-4.5 -mt-4 mb-3.5 bg-slate-100 dark:bg-slate-950 overflow-hidden relative border-b border-slate-200/80 dark:border-slate-800">
             <img
               src={imageAttachments[0].url}
               alt={note.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
             {imageAttachments.length > 1 && (
-              <span className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded bg-black/70 backdrop-blur-sm text-[10px] text-white font-medium flex items-center gap-1">
-                <Camera className="w-3 h-3" />
+              <span className="absolute bottom-2 right-2 px-2 py-0.5 rounded-full bg-black/70 backdrop-blur-md text-[10px] text-white font-medium flex items-center gap-1 shadow-sm">
+                <Camera className="w-3 h-3 text-cyan-300" />
                 <span>+{imageAttachments.length - 1} photos</span>
               </span>
             )}
@@ -82,14 +112,14 @@ export const NoteCard: React.FC<NoteCardProps> = ({
         <div className="flex items-center justify-between gap-2 mb-2.5">
           <div className="flex items-center gap-1.5 flex-wrap">
             {note.pinned === 1 && (
-              <span className="flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/40 text-amber-400">
-                <Pin className="w-2.5 h-2.5 fill-amber-400" />
+              <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/35 text-amber-600 dark:text-amber-400 shadow-xs">
+                <Pin className="w-2.5 h-2.5 fill-amber-500 dark:fill-amber-400" />
                 <span>Pinned</span>
               </span>
             )}
 
             {note.is_public === 1 && (
-              <span className="flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/40 text-emerald-400" title="Public Shareable Link active">
+              <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/35 text-emerald-600 dark:text-emerald-400 shadow-xs" title="Public Shareable Link active">
                 <Globe className="w-2.5 h-2.5" />
                 <span>Public</span>
               </span>
@@ -97,18 +127,18 @@ export const NoteCard: React.FC<NoteCardProps> = ({
 
             {note.subject_name && (
               <span
-                className="text-[10px] font-semibold px-2 py-0.5 rounded-md border"
+                className="text-[10px] font-semibold px-2 py-0.5 rounded-full border shadow-xs"
                 style={{
-                  backgroundColor: `${note.subject_color || '#38bdf8'}15`,
-                  borderColor: `${note.subject_color || '#38bdf8'}40`,
-                  color: note.subject_color || '#38bdf8'
+                  backgroundColor: `${note.subject_color || '#0284c7'}15`,
+                  borderColor: `${note.subject_color || '#0284c7'}35`,
+                  color: note.subject_color || '#0284c7'
                 }}
               >
                 {note.subject_name}
               </span>
             )}
 
-            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${getStatusBadge(note.status)}`}>
+            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border shadow-xs ${getStatusBadge(note.status)}`}>
               {note.status}
             </span>
           </div>
@@ -116,99 +146,97 @@ export const NoteCard: React.FC<NoteCardProps> = ({
           <button
             onClick={(e) => onToggleStar(note.id, e)}
             title={note.starred ? 'Starred' : 'Add to Starred'}
-            className="p-1 rounded-md text-slate-500 hover:text-amber-400 hover:bg-slate-800/60 transition-colors"
+            className="p-1 rounded-full text-slate-400 hover:text-amber-400 hover:bg-amber-500/10 transition-colors"
           >
             <Star
-              className={`w-4 h-4 ${
-                note.starred ? 'text-amber-400 fill-amber-400' : 'text-slate-500'
+              className={`w-4 h-4 transition-transform ${
+                note.starred ? 'text-amber-400 fill-amber-400 scale-110' : 'text-slate-400 hover:scale-110'
               }`}
             />
           </button>
         </div>
 
         {/* Title */}
-        <h3 className="text-base font-bold text-white group-hover:text-cyan-300 transition-colors line-clamp-1 mb-1.5">
+        <h3 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-sky-600 dark:group-hover:text-cyan-300 transition-colors line-clamp-1 mb-1.5">
           {note.title}
         </h3>
 
-        {/* Summary */}
-        <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed mb-3">
-          {note.summary || (note.content ? note.content.slice(0, 140).replace(/[#*`_]/g, '') : 'No summary provided.')}
+        {/* Humanized Summary */}
+        <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed mb-3">
+          {displaySummary}
         </p>
 
         {/* Tags */}
         {note.tags && note.tags.length > 0 && (
-          <div className="flex items-center gap-1 flex-wrap mb-3">
+          <div className="flex items-center gap-1 flex-wrap mb-3.5">
             {note.tags.slice(0, 3).map((tag) => (
               <span
                 key={tag}
-                className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800/70 text-slate-300 border border-slate-700/50"
+                className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700/60"
               >
                 #{tag}
               </span>
             ))}
             {note.tags.length > 3 && (
-              <span className="text-[10px] text-slate-500">+{note.tags.length - 3}</span>
+              <span className="text-[10px] text-slate-400 font-medium">+{note.tags.length - 3}</span>
             )}
           </div>
         )}
       </div>
 
       {/* Footer Meta & Stats */}
-      <div className="pt-3 border-t border-slate-800/70 flex items-center justify-between text-xs text-slate-400">
-        <div className="flex items-center gap-2.5 flex-wrap">
+      <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+        <div className="flex items-center gap-2 flex-wrap">
+          {pdfAttachments.length > 0 && (
+            <span className="flex items-center gap-1 text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200/80 dark:border-rose-900/40" title={`${pdfAttachments.length} PDF Documents`}>
+              <FileText className="w-3 h-3" />
+              <span>{pdfAttachments.length} {pdfAttachments.length === 1 ? 'PDF' : 'PDFs'}</span>
+            </span>
+          )}
+
           {imageAttachments.length > 0 && (
-            <span className="flex items-center gap-1 text-[11px] text-cyan-400" title={`${imageAttachments.length} Photos`}>
-              <Camera className="w-3.5 h-3.5" />
+            <span className="flex items-center gap-1 text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 border border-sky-200/80 dark:border-sky-900/40" title={`${imageAttachments.length} Photos`}>
+              <Camera className="w-3 h-3" />
               <span>{imageAttachments.length}</span>
             </span>
           )}
 
-          {pdfAttachments.length > 0 && (
-            <span className="flex items-center gap-1 text-[11px] text-rose-400" title={`${pdfAttachments.length} PDF Documents`}>
-              <FileText className="w-3.5 h-3.5" />
-              <span>{pdfAttachments.length}</span>
-            </span>
-          )}
-
-          {note.resource_links && note.resource_links.length > 0 && (
-            <span className="flex items-center gap-1 text-[11px] text-indigo-400" title={`${note.resource_links.length} Links`}>
-              <Link2 className="w-3.5 h-3.5" />
-              <span>{note.resource_links.length}</span>
-            </span>
-          )}
-
           {note.code_snippets && note.code_snippets.length > 0 && (
-            <span className="flex items-center gap-1 text-[11px] text-slate-400" title={`${note.code_snippets.length} Code / Formulas`}>
-              <Code className="w-3.5 h-3.5 text-slate-400" />
+            <span className="flex items-center gap-1 text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700/60" title={`${note.code_snippets.length} Code / Formulas`}>
+              <Code className="w-3 h-3 text-indigo-500 dark:text-indigo-400" />
               <span>{note.code_snippets.length}</span>
             </span>
           )}
 
           {note.flashcards && note.flashcards.length > 0 && (
-            <span className="flex items-center gap-1 text-[11px] text-purple-400" title={`${note.flashcards.length} Flashcards`}>
-              <HelpCircle className="w-3.5 h-3.5" />
+            <span className="flex items-center gap-1 text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 border border-purple-200/80 dark:border-purple-900/40" title={`${note.flashcards.length} Flashcards`}>
+              <HelpCircle className="w-3 h-3" />
               <span>{note.flashcards.length}</span>
             </span>
           )}
+
+          <span className="flex items-center gap-1 text-[10px] text-slate-400 font-medium">
+            <Clock className="w-2.5 h-2.5" />
+            <span>{readTime}m read</span>
+          </span>
         </div>
 
         <div className="flex items-center gap-2">
           {formatRelativeTime(note.updated_at || note.created_at) && (
-            <span className="text-[10px] text-slate-500 font-mono tracking-tight">
+            <span className="text-[10px] text-slate-400 font-medium tracking-tight">
               {formatRelativeTime(note.updated_at || note.created_at)}
             </span>
           )}
 
           <button
             onClick={(e) => onQuickAI(note, e)}
-            title="Ask AI to explain this note"
-            className="p-1 rounded text-purple-400 hover:text-purple-300 hover:bg-purple-950/50 transition-colors"
+            title="Ask AI Copilot to explain or summarize"
+            className="p-1 rounded-md text-purple-500 hover:text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/50 transition-colors"
           >
             <Sparkles className="w-3.5 h-3.5" />
           </button>
           
-          <span className="text-slate-500 group-hover:text-slate-300 group-hover:translate-x-0.5 transition-all">
+          <span className="text-slate-400 group-hover:text-sky-500 group-hover:translate-x-0.5 transition-all">
             <ChevronRight className="w-4 h-4" />
           </span>
         </div>
