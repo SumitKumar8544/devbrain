@@ -456,36 +456,36 @@ export function App() {
           ) : notes.length === 0 && subjects.length === 0 && !searchQuery ? (
             /* Mode 3: Fresh Blank Slate Onboarding */
             <div className="max-w-2xl mx-auto py-12 px-4 text-center">
-              <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-cyan-500/20 to-blue-500/20 border border-cyan-500/30 flex items-center justify-center mx-auto mb-5 text-cyan-400">
+              <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-sky-500/20 to-blue-500/20 border border-sky-500/30 flex items-center justify-center mx-auto mb-5 text-sky-500 dark:text-cyan-400 shadow-lg shadow-sky-500/10">
                 <BookOpen className="w-8 h-8" />
               </div>
 
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-2">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mb-2">
                 Welcome to your Knowledge Vault, {currentUser.name}! 🌟
               </h2>
-              <p className="text-sm text-slate-400 max-w-lg mx-auto leading-relaxed mb-8">
+              <p className="text-sm text-slate-600 dark:text-slate-400 max-w-lg mx-auto leading-relaxed mb-8">
                 Your notebook is completely blank and ready. Capture photos of handwritten notes or whiteboard sketches, upload PDF documents, save essential links, and let AI help you understand any concept!
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg mx-auto mb-8">
                 <button
                   onClick={handleStartCreate}
-                  className="p-5 rounded-2xl bg-gradient-to-br from-cyan-500/10 to-blue-500/10 hover:from-cyan-500/20 hover:to-blue-500/20 border border-cyan-500/40 text-left transition-all group shadow-lg hover:scale-[1.02]"
+                  className="p-5 rounded-2xl bg-white/80 dark:bg-slate-900/65 backdrop-blur-xl hover:bg-white dark:hover:bg-slate-800 border border-white/80 dark:border-white/10 hover:border-sky-400/60 dark:hover:border-sky-400/40 text-left transition-all group shadow-md hover:scale-[1.02]"
                 >
-                  <Plus className="w-6 h-6 text-cyan-400 mb-2 group-hover:scale-110 transition-transform" />
-                  <h4 className="text-sm font-bold text-white mb-1">Create Your First Note</h4>
-                  <p className="text-xs text-slate-400">
+                  <Plus className="w-6 h-6 text-sky-500 dark:text-cyan-400 mb-2 group-hover:scale-110 transition-transform" />
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-1">Create Your First Note</h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     Upload photos, attach PDFs, paste web links, and write thoughts.
                   </p>
                 </button>
 
                 <button
                   onClick={() => setIsSubjectModalOpen(true)}
-                  className="p-5 rounded-2xl bg-slate-900/80 hover:bg-slate-850 border border-slate-800 hover:border-slate-700 text-left transition-all group shadow-lg hover:scale-[1.02]"
+                  className="p-5 rounded-2xl bg-white/80 dark:bg-slate-900/65 backdrop-blur-xl hover:bg-white dark:hover:bg-slate-800 border border-white/80 dark:border-white/10 hover:border-purple-400/60 dark:hover:border-purple-400/40 text-left transition-all group shadow-md hover:scale-[1.02]"
                 >
-                  <FolderPlus className="w-6 h-6 text-purple-400 mb-2 group-hover:scale-110 transition-transform" />
-                  <h4 className="text-sm font-bold text-white mb-1">Add a Notebook / Subject</h4>
-                  <p className="text-xs text-slate-400">
+                  <FolderPlus className="w-6 h-6 text-purple-500 dark:text-purple-400 mb-2 group-hover:scale-110 transition-transform" />
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-1">Add a Notebook / Subject</h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     Organize by School, College, Work, Exam, or Personal Learning topics.
                   </p>
                 </button>
@@ -493,16 +493,16 @@ export function App() {
 
               {/* Supported Media Features */}
               <div className="grid grid-cols-3 gap-3 max-w-lg mx-auto text-center">
-                <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80 text-slate-300">
-                  <Camera className="w-4 h-4 text-cyan-400 mx-auto mb-1" />
+                <div className="p-3 rounded-xl bg-white/70 dark:bg-slate-900/50 backdrop-blur-md border border-white/80 dark:border-white/10 text-slate-700 dark:text-slate-300 shadow-xs">
+                  <Camera className="w-4 h-4 text-sky-500 dark:text-cyan-400 mx-auto mb-1" />
                   <span className="text-[11px] font-semibold block">Notebook Photos</span>
                 </div>
-                <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80 text-slate-300">
-                  <FileText className="w-4 h-4 text-rose-400 mx-auto mb-1" />
+                <div className="p-3 rounded-xl bg-white/70 dark:bg-slate-900/50 backdrop-blur-md border border-white/80 dark:border-white/10 text-slate-700 dark:text-slate-300 shadow-xs">
+                  <FileText className="w-4 h-4 text-rose-500 dark:text-rose-400 mx-auto mb-1" />
                   <span className="text-[11px] font-semibold block">PDF Documents</span>
                 </div>
-                <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80 text-slate-300">
-                  <Link2 className="w-4 h-4 text-indigo-400 mx-auto mb-1" />
+                <div className="p-3 rounded-xl bg-white/70 dark:bg-slate-900/50 backdrop-blur-md border border-white/80 dark:border-white/10 text-slate-700 dark:text-slate-300 shadow-xs">
+                  <Link2 className="w-4 h-4 text-indigo-500 dark:text-indigo-400 mx-auto mb-1" />
                   <span className="text-[11px] font-semibold block">Important Links</span>
                 </div>
               </div>
@@ -561,10 +561,10 @@ export function App() {
                       onChange={(e) => setSortBy(e.target.value as any)}
                       className="bg-transparent text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-none cursor-pointer pr-1"
                     >
-                      <option value="recent">Recently Updated</option>
-                      <option value="title">Alphabetical (A-Z)</option>
-                      <option value="starred">Starred First</option>
-                      <option value="oldest">Oldest First</option>
+                      <option value="recent" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Recently Updated</option>
+                      <option value="title" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Alphabetical (A-Z)</option>
+                      <option value="starred" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Starred First</option>
+                      <option value="oldest" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100">Oldest First</option>
                     </select>
                   </div>
 
@@ -619,17 +619,17 @@ export function App() {
                   <span>Loading notes...</span>
                 </div>
               ) : filteredNotes.length === 0 ? (
-                <div className="py-16 text-center bg-slate-900/40 border border-slate-800/80 rounded-2xl p-8 max-w-lg mx-auto">
-                  <SearchX className="w-10 h-10 text-slate-500 mx-auto mb-3" />
-                  <h3 className="text-base font-bold text-white mb-1">No notes match your filters</h3>
-                  <p className="text-xs text-slate-400 mb-5">
+                <div className="py-16 text-center bg-white/70 dark:bg-slate-900/50 backdrop-blur-xl border border-white/80 dark:border-white/10 rounded-2xl p-8 max-w-lg mx-auto shadow-md">
+                  <SearchX className="w-10 h-10 text-slate-400 dark:text-slate-500 mx-auto mb-3" />
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">No notes match your filters</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-5">
                     {searchQuery
                       ? `No notes match "${searchQuery}".`
                       : 'Create your first note or upload a photo/PDF to get started.'}
                   </p>
                   <button
                     onClick={handleStartCreate}
-                    className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg text-xs font-semibold shadow-md hover:scale-[1.02] transition-all"
+                    className="px-4 py-2 bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 text-white rounded-xl text-xs font-semibold shadow-md hover:scale-[1.02] transition-all"
                   >
                     + Create Note
                   </button>

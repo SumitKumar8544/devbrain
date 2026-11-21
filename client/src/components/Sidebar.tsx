@@ -264,15 +264,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Tags Filter */}
       {allTags.length > 0 && (
-        <div className="pt-4 border-t border-slate-800/80">
+        <div className="pt-4 border-t border-slate-200/80 dark:border-slate-800/80">
           <div className="flex items-center justify-between mb-2 px-1">
-            <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+            <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Keywords & Tags
             </h3>
             {activeTag && (
               <button
                 onClick={() => onSelectTag(null)}
-                className="text-[10px] text-cyan-400 hover:underline"
+                className="text-[10px] text-sky-600 dark:text-cyan-400 hover:underline font-semibold"
               >
                 Clear
               </button>
@@ -283,10 +283,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 key={tag}
                 onClick={() => onSelectTag(activeTag === tag ? null : tag)}
-                className={`flex items-center gap-1 px-2 py-0.5 rounded text-[11px] transition-all ${
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] transition-all font-medium ${
                   activeTag === tag
-                    ? 'bg-cyan-500/25 text-cyan-300 border border-cyan-500/40 font-medium'
-                    : 'bg-slate-800/60 text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                    ? 'bg-sky-500/20 text-sky-600 dark:text-cyan-300 border border-sky-500/40 font-semibold shadow-xs'
+                    : 'bg-white/80 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-slate-700/60 hover:bg-white dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200 shadow-2xs'
                 }`}
               >
                 <Hash className="w-2.5 h-2.5 opacity-60" />

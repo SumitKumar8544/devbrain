@@ -211,11 +211,11 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         </div>
 
         {/* Results Container */}
-        <div className="flex-1 overflow-y-auto p-2 divide-y divide-slate-800/40 space-y-2">
+        <div className="flex-1 overflow-y-auto p-2 divide-y divide-slate-100 dark:divide-slate-800/40 space-y-2">
           {/* Actions section */}
           {actions.length > 0 && (
             <div>
-              <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              <div className="px-3 py-1.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 Quick Commands
               </div>
               {actions.map((act) => {
@@ -228,14 +228,16 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                     onClick={() => act.action()}
                     onMouseEnter={() => setSelectedIndex(globalIdx)}
                     className={`flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer text-xs transition-colors ${
-                      isSelected ? 'bg-cyan-500/15 text-cyan-200 border border-cyan-500/30' : 'text-slate-300 hover:bg-slate-800/60'
+                      isSelected
+                        ? 'bg-sky-50 dark:bg-cyan-500/15 text-sky-700 dark:text-cyan-200 border border-sky-300 dark:border-cyan-500/30 font-semibold'
+                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60'
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
                       <IconComponent className={`w-4 h-4 ${act.color}`} />
-                      <span className="font-medium text-slate-200">{act.title}</span>
+                      <span className="font-medium text-slate-900 dark:text-slate-200">{act.title}</span>
                     </div>
-                    <ArrowRight className={`w-3.5 h-3.5 text-slate-500 ${isSelected ? 'text-cyan-400' : ''}`} />
+                    <ArrowRight className={`w-3.5 h-3.5 text-slate-400 ${isSelected ? 'text-sky-600 dark:text-cyan-400' : ''}`} />
                   </div>
                 );
               })}
@@ -245,7 +247,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
           {/* Notes section */}
           {matchingNotes.length > 0 && (
             <div className="pt-2">
-              <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              <div className="px-3 py-1.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 Study Notes ({matchingNotes.length})
               </div>
               {matchingNotes.map((n) => {
@@ -260,17 +262,19 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                     }}
                     onMouseEnter={() => setSelectedIndex(globalIdx)}
                     className={`flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer text-xs transition-colors ${
-                      isSelected ? 'bg-cyan-500/15 text-cyan-200 border border-cyan-500/30' : 'text-slate-300 hover:bg-slate-800/60'
+                      isSelected
+                        ? 'bg-sky-50 dark:bg-cyan-500/15 text-sky-700 dark:text-cyan-200 border border-sky-300 dark:border-cyan-500/30'
+                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60'
                     }`}
                   >
                     <div className="flex items-center gap-2.5 min-w-0 pr-2">
                       <FileText className="w-4 h-4 text-slate-400 flex-shrink-0" />
                       <div className="truncate">
-                        <span className="font-semibold text-slate-200 truncate block">{n.title}</span>
-                        {n.summary && <span className="text-[11px] text-slate-400 truncate block">{n.summary}</span>}
+                        <span className="font-semibold text-slate-900 dark:text-slate-200 truncate block">{n.title}</span>
+                        {n.summary && <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate block">{n.summary}</span>}
                       </div>
                     </div>
-                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 flex-shrink-0">
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 flex-shrink-0">
                       {n.difficulty || 'Note'}
                     </span>
                   </div>
@@ -282,7 +286,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
           {/* Subjects section */}
           {matchingSubjects.length > 0 && (
             <div className="pt-2">
-              <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              <div className="px-3 py-1.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 Notebooks & Subjects ({matchingSubjects.length})
               </div>
               {matchingSubjects.map((sub) => {
@@ -297,15 +301,17 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                     }}
                     onMouseEnter={() => setSelectedIndex(globalIdx)}
                     className={`flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer text-xs transition-colors ${
-                      isSelected ? 'bg-cyan-500/15 text-cyan-200 border border-cyan-500/30' : 'text-slate-300 hover:bg-slate-800/60'
+                      isSelected
+                        ? 'bg-sky-50 dark:bg-cyan-500/15 text-sky-700 dark:text-cyan-200 border border-sky-300 dark:border-cyan-500/30'
+                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60'
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
-                      <BookOpen className="w-4 h-4 text-cyan-400" />
-                      <span className="font-semibold text-slate-200">{sub.name}</span>
+                      <BookOpen className="w-4 h-4 text-sky-500 dark:text-cyan-400" />
+                      <span className="font-semibold text-slate-900 dark:text-slate-200">{sub.name}</span>
                       {sub.code && <span className="text-[10px] text-slate-500 font-mono">({sub.code})</span>}
                     </div>
-                    <span className="text-[10px] text-slate-400">Filter View</span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400">Filter View</span>
                   </div>
                 );
               })}
@@ -320,10 +326,10 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         </div>
 
         {/* Footer info bar */}
-        <div className="px-4 py-2 border-t border-slate-800/80 bg-slate-950 flex items-center justify-between text-[11px] text-slate-500">
+        <div className="px-4 py-2 border-t border-slate-200 dark:border-slate-800/80 bg-slate-50 dark:bg-slate-950 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
           <div className="flex items-center gap-3">
-            <span><kbd className="px-1 py-0.5 rounded bg-slate-800 text-slate-300 text-[10px]">↑↓</kbd> Navigate</span>
-            <span><kbd className="px-1 py-0.5 rounded bg-slate-800 text-slate-300 text-[10px]">Enter</kbd> Select</span>
+            <span><kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-[10px]">↑↓</kbd> Navigate</span>
+            <span><kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-[10px]">Enter</kbd> Select</span>
           </div>
           <span>DevBrain Fast Command Navigator</span>
         </div>
