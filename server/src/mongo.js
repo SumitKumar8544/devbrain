@@ -35,7 +35,7 @@ export const MongoUser = mongoose.models.User || mongoose.model('User', UserSche
  */
 export function formatMongoUri(rawUri) {
   if (!rawUri) return '';
-  let uri = rawUri.trim();
+  let uri = rawUri.trim().replace(/^["']|["']$/g, '');
   // If user pasted mongodb+srv://user:<password>@host
   // Notice angle brackets around password
   const match = uri.match(/^mongodb(\+srv)?:\/\/([^:]+):<([^>]+)>@(.*)$/);
@@ -46,6 +46,8 @@ export function formatMongoUri(rawUri) {
     const rest = match[4];
     uri = `mongodb${proto}://${user}:${encodeURIComponent(pass)}@${rest}`;
   }
+  // Fix accidental double slashes in path like .net//devbrain
+  uri = uri.replace(/(\.mongodb\.net)\/\/+/, '$1/');
   return uri;
 }
 
