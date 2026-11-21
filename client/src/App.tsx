@@ -25,7 +25,13 @@ import {
   FileText,
   Link2,
   Sparkles,
-  Trash2
+  Trash2,
+  LayoutGrid,
+  List,
+  ArrowUpDown,
+  Star,
+  Pin,
+  Clock
 } from 'lucide-react';
 
 export function App() {
@@ -48,12 +54,26 @@ export function App() {
   const [stats, setStats] = useState<VaultStats | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Filters
+  // Filters & Sorting
   const [activeSubjectId, setActiveSubjectId] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [difficultyFilter, setDifficultyFilter] = useState<string>('All');
+  const [sortBy, setSortBy] = useState<'recent' | 'oldest' | 'title' | 'starred'>('recent');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
+    try {
+      return (localStorage.getItem('devbrain_view_mode') as 'grid' | 'list') || 'grid';
+    } catch {
+      return 'grid';
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('devbrain_view_mode', viewMode);
+    } catch {}
+  }, [viewMode]);
 
   // Navigation / View state
   const [activeNote, setActiveNote] = useState<Note | null>(null);
@@ -314,13 +334,48 @@ export function App() {
   }
 
   const filteredNotes = notes.filter((n) => {
+    if (activeSubjectId && n.subject_id !== activeSubjectId) return false;
+    if (activeTag && (!n.tags || !n.tags.includes(activeTag))) return false;
     if (activeFilter === 'starred' && n.starred !== 1) return false;
     if (activeFilter === 'interview' && n.status !== 'Interview Ready') return false;
     if (activeFilter === 'exam' && n.status !== 'Exam Ready') return false;
     if (activeFilter === 'mastered' && n.status !== 'Mastered') return false;
     if (activeFilter === 'revising' && n.status !== 'Revising' && n.status !== 'Draft') return false;
     if (difficultyFilter !== 'All' && n.difficulty !== difficultyFilter) return false;
+    
+    // Accurate Multi-field Search
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      const inTitle = n.title?.toLowerCase().includes(q);
+      const inContent = n.content?.toLowerCase().includes(q);
+      const inSummary = n.summary?.toLowerCase().includes(q);
+      const inTags = n.tags?.some((t) => t.toLowerCase().includes(q));
+      const inSubject = n.subject_name?.toLowerCase().includes(q);
+      const inAttachments = n.attachments?.some((a) => a.name?.toLowerCase().includes(q));
+      if (!inTitle && !inContent && !inSummary && !inTags && !inSubject && !inAttachments) return false;
+    }
     return true;
+  }).sort((a, b) => {
+    if (sortBy === 'title') {
+      return (a.title || '').localeCompare(b.title || '');
+    }
+    if (sortBy === 'oldest') {
+      const dateA = new Date(a.created_at || 0).getTime();
+      const dateB = new Date(b.created_at || 0).getTime();
+      return dateA - dateB;
+    }
+    if (sortBy === 'starred') {
+      if ((b.starred || 0) !== (a.starred || 0)) {
+        return (b.starred || 0) - (a.starred || 0);
+      }
+    }
+    // Default: 'recent' (pinned notes stay on top, then newest updated)
+    if ((b.pinned || 0) !== (a.pinned || 0)) {
+      return (b.pinned || 0) - (a.pinned || 0);
+    }
+    const dateA = new Date(a.updated_at || a.created_at || 0).getTime();
+    const dateB = new Date(b.updated_at || b.created_at || 0).getTime();
+    return dateB - dateA;
   });
 
   return (
@@ -497,8 +552,23 @@ export function App() {
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2.5">
-                  <Filter className="w-3.5 h-3.5 text-slate-400" />
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* Sort By Dropdown */}
+                  <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/70 dark:bg-slate-900/60 backdrop-blur-md border border-white/80 dark:border-white/10 text-xs shadow-xs">
+                    <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value as any)}
+                      className="bg-transparent text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-none cursor-pointer pr-1"
+                    >
+                      <option value="recent">Recently Updated</option>
+                      <option value="title">Alphabetical (A-Z)</option>
+                      <option value="starred">Starred First</option>
+                      <option value="oldest">Oldest First</option>
+                    </select>
+                  </div>
+
+                  {/* Difficulty Filter */}
                   <div className="flex items-center bg-white/70 dark:bg-slate-900/60 backdrop-blur-md border border-white/80 dark:border-white/10 rounded-full p-1 text-xs shadow-xs">
                     {(['All', 'Beginner', 'Intermediate', 'Advanced'] as const).map((diff) => (
                       <button
@@ -513,6 +583,32 @@ export function App() {
                         {diff}
                       </button>
                     ))}
+                  </div>
+
+                  {/* Grid / List View Mode Toggle */}
+                  <div className="flex items-center bg-white/70 dark:bg-slate-900/60 backdrop-blur-md border border-white/80 dark:border-white/10 rounded-full p-1 text-xs shadow-xs">
+                    <button
+                      onClick={() => setViewMode('grid')}
+                      title="Grid Card View"
+                      className={`p-1.5 rounded-full transition-all ${
+                        viewMode === 'grid'
+                          ? 'bg-sky-500 text-white shadow-xs'
+                          : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                    >
+                      <LayoutGrid className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => setViewMode('list')}
+                      title="Compact List View"
+                      className={`p-1.5 rounded-full transition-all ${
+                        viewMode === 'list'
+                          ? 'bg-sky-500 text-white shadow-xs'
+                          : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                    >
+                      <List className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -538,8 +634,106 @@ export function App() {
                     + Create Note
                   </button>
                 </div>
+              ) : viewMode === 'list' ? (
+                <div className="space-y-2.5">
+                  {filteredNotes.map((note) => {
+                    const pdfCount = note.attachments?.filter((a) => a.type === 'pdf' || a.type === 'document').length || 0;
+                    const imgCount = note.attachments?.filter((a) => a.type === 'image').length || 0;
+                    const wordCount = (note.content || '').trim().split(/\s+/).filter(Boolean).length;
+                    const readTime = Math.max(1, Math.ceil(wordCount / 160));
+                    const accentColor = note.subject_color || (note.pinned ? '#f59e0b' : '#38bdf8');
+
+                    return (
+                      <div
+                        key={note.id}
+                        onClick={() => handleSelectNote(note)}
+                        className="group relative bg-white/80 dark:bg-slate-900/65 backdrop-blur-xl border border-white/80 dark:border-white/10 hover:border-sky-400/60 dark:hover:border-sky-400/40 rounded-2xl p-4 cursor-pointer transition-all duration-200 shadow-[0_4px_20px_-4px_rgba(15,23,42,0.04)] dark:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.3)] hover:shadow-lg hover:-translate-y-0.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 overflow-hidden"
+                      >
+                        <div
+                          className="absolute left-0 top-0 bottom-0 w-1 transition-all group-hover:w-1.5"
+                          style={{ backgroundColor: accentColor }}
+                        />
+
+                        <div className="flex-1 min-w-0 pl-1.5">
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            {note.pinned === 1 && (
+                              <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/35 text-amber-600 dark:text-amber-400">
+                                <Pin className="w-2.5 h-2.5 fill-amber-500 dark:fill-amber-400" />
+                                <span>Pinned</span>
+                              </span>
+                            )}
+                            {note.subject_name && (
+                              <span
+                                className="text-[10px] font-semibold px-2 py-0.5 rounded-full border"
+                                style={{
+                                  backgroundColor: `${note.subject_color || '#0284c7'}15`,
+                                  borderColor: `${note.subject_color || '#0284c7'}35`,
+                                  color: note.subject_color || '#0284c7',
+                                }}
+                              >
+                                {note.subject_name}
+                              </span>
+                            )}
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                              {note.status}
+                            </span>
+                          </div>
+
+                          <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white group-hover:text-sky-600 dark:group-hover:text-cyan-300 transition-colors truncate">
+                            {note.title}
+                          </h3>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">
+                            {note.summary || (note.content ? note.content.slice(0, 100).replace(/[#*`_]/g, '') : 'Interactive study note')}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-3 flex-shrink-0 text-xs text-slate-500 dark:text-slate-400 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800/80">
+                          {pdfCount > 0 && (
+                            <span className="flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-md bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200/80 dark:border-rose-900/40">
+                              <FileText className="w-3 h-3" />
+                              <span>{pdfCount} {pdfCount === 1 ? 'PDF' : 'PDFs'}</span>
+                            </span>
+                          )}
+
+                          {imgCount > 0 && (
+                            <span className="flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-md bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 border border-sky-200/80 dark:border-sky-900/40">
+                              <Camera className="w-3 h-3" />
+                              <span>{imgCount}</span>
+                            </span>
+                          )}
+
+                          <span className="text-[11px] font-medium hidden md:inline text-slate-400">
+                            {readTime}m read
+                          </span>
+
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleStar(note.id, e);
+                            }}
+                            title={note.starred ? 'Starred' : 'Add to Starred'}
+                            className="p-1.5 rounded-full text-slate-400 hover:text-amber-400 hover:bg-amber-500/10 transition-colors"
+                          >
+                            <Star className={`w-4 h-4 ${note.starred ? 'text-amber-400 fill-amber-400' : ''}`} />
+                          </button>
+
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleQuickAI(note, e);
+                            }}
+                            title="Ask AI to explain note"
+                            className="p-1.5 rounded-full text-purple-500 hover:text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/40 transition-colors"
+                          >
+                            <Sparkles className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                   {filteredNotes.map((note) => (
                     <NoteCard
                       key={note.id}
