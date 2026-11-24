@@ -6,12 +6,12 @@
 
 ## 🚀 Quick Start
 
-The app is already set up and running on your machine:
+The app is set up and running on your machine:
 
-- **Frontend (Web App):** [http://localhost:5174](http://localhost:5174) (or [http://localhost:5173](http://localhost:5173))
+- **Frontend (Web App):** [http://localhost:5173](http://localhost:5173)
 - **Backend API:** [http://localhost:5000](http://localhost:5000)
 
-To start manually in the future from the root directory:
+To start manually from the root directory:
 ```bash
 npm run dev
 ```
@@ -19,7 +19,7 @@ npm run dev
 
 ---
 
-## ✨ Features Built for B.Tech Computer Science Engineers
+## ✨ Features Built for Engineers & Students
 
 ### 1. 📚 4-Year B.Tech Semester & Subject Organization
 - Pre-seeded with core engineering subjects:
@@ -35,26 +35,36 @@ npm run dev
 - **Rich Markdown Formatting**: Headers, lists, task checklists, callout notes, and KaTeX-style math equations.
 - **Multi-Language Code Snippets**: Multi-tab code snippets in **C++, Java, Python, SQL, JavaScript, Go, Rust, and C** with one-click **Copy Code** functionality.
 - **Important Resource Links Bookmarks**: Direct categorized cards for **LeetCode Problems**, **GitHub Repos**, **YouTube Video Walkthroughs**, **Research Papers**, and **Official Documentation**.
-- **Interactive Spaced Repetition Flashcards**: 3D flip-cards with Question/Answer pairs to test your active recall before university exams and technical interviews.
+- **Interactive Spaced Repetition Flashcards**: 3D flip-cards with Question/Answer pairs to test your active recall before exams and technical interviews.
 - **Revision Status Badges**: Tag notes as `Draft`, `Revising`, `Exam Ready`, `Interview Ready`, or `Mastered`.
 
-### 3. 🤖 Context-Aware AI Study Copilot
+### 3. 🎨 Modern Glassmorphic Design & Dual Themes
+- **Apple/macOS Inspired Glassmorphism**: Translucent frosted panels with ambient aurora background mesh.
+- **Instant Light & Dark Mode**: One-click toggle in Navbar with persistent zero-flicker theme synchronization.
+- **View Toggle & Sorting**: Switch between Responsive Grid and Compact List view, with multi-criteria sorting (Recent, Oldest, Title, Starred).
+
+### 4. 🤖 Context-Aware AI Study Copilot
 - **Note-Aware Reasoning**: The AI Copilot directly inspects the currently opened concept note, code snippet, and links.
 - **1-Click Engineering Actions**:
   - 🧠 **Explain Concept Simply (ELIF5)**: Intuitive real-world analogies and under-the-hood operation.
   - 💻 **Generate Optimal Implementation**: Clean, commented code in C++, Java, or Python with asymptotic complexity analysis ($\mathcal{O}$ notation).
-  - 🧪 **Quiz Me**: Generates 3 tricky university exam or technical interview MCQs with answers.
+  - 🧪 **Quiz Me**: Generates 3 tricky exam or technical interview MCQs with answers.
   - 📝 **Extract Cheat Sheet**: Instant bullet-point revision sheet of formulas, edge cases, and rules.
   - 🐛 **Analyze Edge Cases & Bugs**: Identifies common pitfalls, null/overflow boundary cases, and concurrency hazards.
 - **Direct Note Manipulation**: Click **"Insert into Note"** on any AI explanation or code snippet to instantly append it into your study note!
-- **Gemini 2.5 Flash + Offline Mode**:
-  - Works out of the box in intelligent offline mode.
-  - Enter your free **Google Gemini API Key** in **Settings (⚙️)** to unlock real-time Gemini 2.5 Flash live reasoning!
+- Powered by Google Gemini 2.5 Flash API with intelligent offline fallback heuristics.
 
-### 4. 🔒 100% Privacy & 4-Year Long-Term Data Safety
-- **Local SQLite Database**: All notes, links, flashcards, and settings are stored locally in `server/data/devbrain.sqlite` using Node.js 22's native SQLite engine.
-- **One-Click Vault Export**: Click **Export Vault (JSON)** in Settings to download your entire knowledge base in a single file to backup to GitHub or Google Drive.
-- **One-Click Restore**: Easily import your backup JSON file anytime.
+### 5. ☁️ MongoDB Atlas Cloud Authentication & Authorization
+- **Primary Cloud Identity**: User registration and login credentials authenticated directly via **MongoDB Atlas**.
+- **Secure Hashing**: Salted SHA-256 cryptographic password storage.
+- **Offline / Local Fallback**: Fast local SQLite sync for high-performance relational queries.
+
+### 6. 💳 3-Month Free Trial & Dual-Engine Payment Gateway
+- **90-Day Free Trial**: Automatically initialized upon account registration with real-time countdown indicator in Navbar.
+- **Graceful Paywall**: Existing notes and revision remain 100% accessible to read and export. Creating new notes, uploading files, and AI inference are gated upon trial expiration.
+- **Dual Payment Gateway**:
+  - **Live Stripe Checkout**: One-click hosted payment for Credit/Debit cards, Apple Pay, and Google Pay.
+  - **Direct In-App Gateway**: 16-digit card brand detection (Visa/Mastercard/Amex), UPI & QR instant payment, Bank 3D Secure / OTP simulation, and printable VAT/tax invoices.
 
 ---
 
@@ -63,23 +73,25 @@ npm run dev
 | Layer | Technologies |
 | :--- | :--- |
 | **Frontend** | React 19, TypeScript, Vite, Tailwind CSS v4, Lucide Icons, React-Markdown, Remark-GFM |
-| **Backend** | Node.js 22, Express, CORS, Dotenv, Native `node:sqlite` (Zero external native build dependencies) |
-| **Database** | SQLite (`server/data/devbrain.sqlite`) with schema migration & pre-seeded CSE notes |
-| **AI Integration** | Google Gemini 2.5 Flash API with intelligent offline fallback engine |
+| **Backend** | Node.js 22, Express, CORS, Helmet, Dotenv, Stripe SDK, Mongoose |
+| **Databases** | MongoDB Atlas (Cloud User Auth) + Native `node:sqlite` (Local Vault & Content) |
+| **Storage** | Supabase Storage (Cloud attachments) + Local Disk Fallback |
+| **AI Integration** | Google Gemini 2.5 Flash API + OpenAI GPT-4o fallback |
 
 ---
 
 ## 📂 Project Architecture
 
 ```
-New folder/
+DevBrain/
 ├── package.json              # Root orchestrator with concurrently
 ├── server/
 │   ├── package.json          # Express server dependencies
 │   ├── data/                 # SQLite database storage (devbrain.sqlite)
 │   └── src/
-│       ├── index.js          # REST API routes (subjects, notes, AI chat, backups)
+│       ├── index.js          # REST API routes (auth, notes, AI chat, billing, stripe)
 │       ├── db.js             # Native SQLite schema & starter B.Tech data
+│       ├── mongo.js          # MongoDB Atlas connection & User schema
 │       └── ai.js             # Gemini AI Study Engine & local heuristics
 └── client/
     ├── package.json          # React + Vite frontend
@@ -89,15 +101,16 @@ New folder/
         ├── types/            # TypeScript interfaces
         ├── services/api.ts   # REST API client
         ├── components/
-        │   ├── Navbar.tsx         # Header, search, semester filters, action bar
-        │   ├── Sidebar.tsx        # Subject tracks, study categories, tag cloud
-        │   ├── NoteCard.tsx       # Note grid card with snippet & link counts
-        │   ├── NoteDetail.tsx     # Full study view (theory, code, links, flashcards)
-        │   ├── NoteEditor.tsx     # Markdown & snippet builder with live preview
-        │   ├── AICopilot.tsx      # Slide-out AI assistant with 1-click prompts
-        │   ├── SettingsModal.tsx  # Gemini API key & Vault export/import
-        │   ├── SubjectModal.tsx   # Custom subject creation modal
-        │   └── DashboardStats.tsx # Learning metrics & subject distribution
+        │   ├── Navbar.tsx             # Header, search, trial pill, theme switch
+        │   ├── Sidebar.tsx            # Subject tracks, study categories, tag cloud
+        │   ├── NoteCard.tsx           # Note grid card with snippet & link counts
+        │   ├── NoteDetail.tsx         # Full study view (theory, code, links, flashcards)
+        │   ├── NoteEditor.tsx         # Markdown & snippet builder with live preview
+        │   ├── AICopilot.tsx          # Slide-out AI assistant with 1-click prompts
+        │   ├── SubscriptionModal.tsx  # 4-stage payment gate (Stripe, Cards, UPI, Receipt)
+        │   ├── SettingsModal.tsx      # Gemini API key, billing tab & Vault export/import
+        │   ├── SubjectModal.tsx       # Custom subject creation modal
+        │   └── DashboardStats.tsx     # Learning metrics & subject distribution
         ├── App.tsx           # Main application state and layout
-        └── index.css         # Tailwind CSS styling and theme
+        └── index.css         # Glassmorphism styling and theme variables
 ```
